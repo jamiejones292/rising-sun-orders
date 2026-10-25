@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+/* Brand tokens, sampled from the official logo. Use these names everywhere
+   (bg-forest, text-gold-ink, font-display ...) rather than raw hex values. */
+@theme {
+  --color-ivory: #fbf4ea; /* logo background */
+  --color-paper: #fffcf6;
+  --color-vellum: #f3e9d8;
+  --color-forest: #132a1f; /* logo wordmark */
+  --color-forest-2: #21402f;
+  --color-forest-night: #0f231a; /* bar screen background */
+  --color-gold: #9c7840; /* logo gold */
+  --color-gold-ink: #7a5c2c; /* gold for small text, passes contrast on ivory */
+  --color-gold-soft: #e9dbbf;
+  --color-ink: #262a26;
+  --color-muted: #6a675b;
+  --color-line: #e4d7bf;
+  --color-ok: #2e6a47;
+  --color-warn: #9a6400;
+  --color-alert: #9a2f22;
+
+  --font-display: "Cormorant Garamond", "Iowan Old Style", Georgia, serif;
+  --font-caps: "Cinzel", "Trajan Pro", Georgia, serif;
+  --font-sans: "Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+@layer base {
+  html,
+  body {
+    background: var(--color-ivory);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    color: var(--color-forest);
+    text-wrap: balance;
+    font-variant-numeric: lining-nums;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-gold);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+}
+
+/* Side gutter that also clears a phone's notch in landscape. */
+@utility gutter {
+  padding-left: max(1rem, env(safe-area-inset-left, 0px));
+  padding-right: max(1rem, env(safe-area-inset-right, 0px));
+}

@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.netlify/
+*.log
+.DS_Store
+
+# Secret keys live in Netlify's settings, never in the repository.
+.env
+.env.*
+!.env.example
+*.tsbuildinfo

@@ -1,0 +1,744 @@
+<title>Rising Sun Ordering</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one phone-width column (the customer's phone), sticky menu header, basket bar pinned to the bottom, sheets slide up from it.
+   Single light theme by choice: the logo artwork is printed on ivory, so the app keeps that ground in every viewer theme. */
+:root{
+  --ivory:#FBF4EA;      /* logo background, sampled */
+  --paper:#FFFCF6;
+  --vellum:#F3E9D8;
+  --green:#132A1F;      /* logo wordmark, sampled */
+  --green-2:#21402F;
+  --gold:#9C7840;       /* logo gold, sampled */
+  --gold-ink:#7A5C2C;   /* gold darkened for small text contrast */
+  --gold-soft:#E9DBBF;
+  --ink:#262A26;
+  --muted:#6A675B;
+  --line:#E4D7BF;
+  --alert:#9A2F22;
+  --ok:#2E6A47;
+  --display:"Cormorant Garamond", "Iowan Old Style", Georgia, serif;
+  --caps:"Cinzel", "Trajan Pro", Georgia, serif;
+  --sans:"Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --col:440px;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{background:var(--vellum);color:var(--ink)}
+body{font-family:var(--sans);font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,label:focus-within{outline:2px solid var(--gold);outline-offset:2px}
+.app{max-width:var(--col);margin:0 auto;min-height:100vh;background:var(--ivory);position:relative;padding-bottom:110px}
+@media (min-width:600px){.app{border-left:1px solid var(--line);border-right:1px solid var(--line);box-shadow:0 0 60px rgba(19,42,31,.08)}}
+.gutter{padding-left:max(18px, env(safe-area-inset-left, 0px));padding-right:max(18px, env(safe-area-inset-right, 0px))}
+.screen[hidden]{display:none!important}
+.caps{font-family:var(--caps);letter-spacing:.22em;text-transform:uppercase;font-size:.72rem;color:var(--gold-ink)}
+h1,h2,h3{font-family:var(--display);font-weight:600;color:var(--green);text-wrap:balance;margin:0;line-height:1.1}
+.price{font-variant-numeric:tabular-nums;font-weight:600}
+.rule{display:flex;align-items:center;gap:10px;color:var(--gold)}
+.rule::before,.rule::after{content:"";flex:1;height:1px;background:var(--gold);opacity:.55}
+.diamond{width:7px;height:7px;background:var(--gold);transform:rotate(45deg);flex:none}
+
+/* Buttons */
+.btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:54px;border-radius:4px;border:1px solid var(--green);background:var(--green);color:var(--ivory);font-weight:600;font-size:1rem;letter-spacing:.02em;padding:0 18px}
+.btn:active{transform:translateY(1px)}
+.btn.ghost{background:transparent;color:var(--green)}
+.btn.gold{background:var(--gold);border-color:var(--gold);color:#fff}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.link{background:none;border:0;color:var(--gold-ink);font-weight:600;text-decoration:underline;text-underline-offset:3px;padding:6px 0}
+
+/* Welcome */
+.welcome{padding-block:18px 32px;display:flex;flex-direction:column;gap:22px}
+.welcome img{display:block;width:100%;height:auto;max-width:380px;max-height:46vh;object-fit:contain;margin:0 auto}
+@media (max-width:380px){.welcome{gap:16px}.welcome img{max-height:40vh}}
+/* Express checkout (Apple Pay / Google Pay) */
+.express{display:flex;flex-direction:column;gap:10px}
+.wallet{height:56px;border-radius:8px;background:#000;color:#fff;border:0;font-size:1.05rem;font-weight:500;display:flex;align-items:center;justify-content:center;gap:6px;width:100%}
+.wallet b{font-weight:700}
+.or{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:.85rem}
+.or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
+.wwrap{position:fixed;inset:0;z-index:25;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center}
+.wsheet{width:min(100%,var(--col));background:#fff;color:#111;border-radius:14px 14px 0 0;padding-top:18px;padding-bottom:calc(20px + env(safe-area-inset-bottom, 0px));padding-left:max(18px, env(safe-area-inset-left, 0px));padding-right:max(18px, env(safe-area-inset-right, 0px));display:flex;flex-direction:column;gap:14px;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+.wtop{display:flex;align-items:center;gap:10px}
+.wtop b{font-size:1.15rem;flex:1}
+.wtag{background:#fff4e5;color:#8a4b00;border-radius:4px;font-size:.7rem;font-weight:700;padding:3px 8px;letter-spacing:.04em}
+.wcancel{background:none;border:0;color:#0a66d8;font-size:1rem;padding:6px 0}
+.wkv{display:grid;grid-template-columns:70px 1fr;gap:10px 12px;margin:0;font-size:.95rem;border-top:1px solid #e5e5e5;border-bottom:1px solid #e5e5e5;padding:12px 0}
+.wkv dt{color:#6b7280}.wkv dd{margin:0}
+.wamt{display:flex;justify-content:space-between;align-items:baseline}
+.wamt b{font-size:1.6rem;font-variant-numeric:tabular-nums}
+.wgo{height:52px;border-radius:10px;background:#000;color:#fff;border:0;font-size:1.05rem;font-weight:600;width:100%}
+.welcome .lead{font-family:var(--display);font-size:1.6rem;text-align:center;color:var(--green);margin:0;line-height:1.2}
+.welcome .lead em{color:var(--gold-ink)}
+.welcome p.sub{text-align:center;color:var(--muted);margin:0 auto;max-width:32ch}
+.hours{display:flex;justify-content:center;gap:8px;align-items:center;font-size:.9rem;color:var(--green)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px rgba(46,106,71,.18)}
+.dot.off{background:var(--alert);box-shadow:0 0 0 3px rgba(154,47,34,.15)}
+.small-print{font-size:.82rem;color:var(--muted);text-align:center;max-width:36ch;margin:0 auto}
+
+/* Menu header */
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top, 0px);z-index:10;background:var(--green)}
+.mhead{position:sticky;top:env(safe-area-inset-top, 0px);z-index:5;background:var(--green);color:var(--ivory)}
+.mhead .top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:14px 10px}
+.mark{font-family:var(--display);font-size:1.35rem;font-weight:600;line-height:1;color:var(--ivory);background:none;border:0;padding:0;text-align:left}
+.mark small{display:block;font-family:var(--caps);font-size:.6rem;letter-spacing:.3em;color:var(--gold-soft);margin-top:4px}
+.chip-table{border:1px solid rgba(233,219,191,.5);border-radius:999px;padding:6px 12px;font-size:.82rem;color:var(--gold-soft);background:transparent;white-space:nowrap}
+.cats{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-block:4px 12px}
+.cats::-webkit-scrollbar{display:none}
+.cat{flex:none;border:1px solid rgba(233,219,191,.35);background:transparent;color:var(--ivory);border-radius:999px;padding:7px 14px;font-size:.88rem;font-weight:500}
+.cat[aria-current="true"]{background:var(--gold-soft);color:var(--green);border-color:var(--gold-soft)}
+
+.banner{margin:16px 18px 0;border:1px solid var(--alert);background:#FBEDE7;color:var(--alert);border-radius:4px;padding:14px 16px}
+.banner strong{display:block;font-family:var(--display);font-size:1.25rem;color:var(--alert);margin-bottom:2px}
+
+.section{padding-block:26px 4px;scroll-margin-top:120px}
+.section-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding-bottom:6px;border-bottom:1px solid var(--gold)}
+.section-h h2{font-size:1.7rem}
+.section-h span{font-size:.8rem;color:var(--muted)}
+.item{display:grid;grid-template-columns:1fr auto;gap:4px 14px;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:16px 0}
+.item > div{min-width:0}
+.item .name{font-weight:600;font-size:1.04rem;color:var(--green)}
+.item .desc{font-size:.9rem;color:var(--muted);margin-top:2px}
+.item .meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.tag{font-size:.72rem;font-weight:600;letter-spacing:.04em;padding:2px 8px;border-radius:3px;border:1px solid var(--line);color:var(--muted);background:var(--paper)}
+.tag.welsh{border-color:var(--gold);color:var(--gold-ink)}
+.tag.out{border-color:var(--alert);color:var(--alert);background:#FBEDE7}
+.item .prices{text-align:right;font-size:.9rem;color:var(--ink);display:flex;flex-direction:column;gap:2px;white-space:nowrap}
+.item .prices small{color:var(--muted);font-weight:400;font-size:.78rem;margin-right:4px}
+.item.is-out .name,.item.is-out .prices{opacity:.5}
+.add-ico{grid-column:2;justify-self:end;width:34px;height:34px;border-radius:50%;border:1px solid var(--green);display:grid;place-items:center;color:var(--green);font-size:1.3rem;line-height:1;margin-top:6px}
+
+/* Basket bar */
+.bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(100%,var(--col));z-index:6;padding-left:max(14px, env(safe-area-inset-left, 0px));padding-right:max(14px, env(safe-area-inset-right, 0px));padding-top:12px;padding-bottom:calc(14px + env(safe-area-inset-bottom, 0px));background:linear-gradient(to top, var(--ivory) 70%, rgba(251,244,234,0))}
+.bar .btn{justify-content:space-between}
+.count{display:inline-grid;place-items:center;min-width:26px;height:26px;border-radius:13px;background:var(--gold);color:#fff;font-size:.82rem;padding:0 7px}
+
+/* Sheet */
+.scrim{position:fixed;inset:0;background:rgba(19,42,31,.45);z-index:20;opacity:0;pointer-events:none;transition:opacity .2s}
+.scrim.open{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:50%;bottom:0;width:min(100%,var(--col));transform:translate(-50%,105%);transition:transform .28s cubic-bezier(.2,.8,.2,1);z-index:21;background:var(--paper);border-radius:14px 14px 0 0;max-height:88vh;display:flex;flex-direction:column;border-top:3px solid var(--gold)}
+.sheet.open{transform:translate(-50%,0)}
+.sheet .body{overflow-y:auto;padding-block:22px 10px;display:flex;flex-direction:column;gap:18px}
+.sheet .foot{padding-block:12px calc(14px + env(safe-area-inset-bottom, 0px));border-top:1px solid var(--line);display:flex;gap:12px;align-items:center}
+.sheet h3{font-size:1.9rem}
+.close{position:absolute;right:max(12px, env(safe-area-inset-right, 0px));top:12px;width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--paper);font-size:1.1rem;color:var(--muted)}
+fieldset{border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:8px}
+legend{font-weight:700;font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:var(--green);margin-bottom:8px;padding:0}
+legend span{font-weight:500;text-transform:none;letter-spacing:0;color:var(--muted)}
+.opt{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:4px;padding:13px 14px;background:var(--ivory);cursor:pointer}
+.opt input{accent-color:var(--green);width:18px;height:18px;margin:0}
+.opt .l{flex:1}
+.opt.disabled{opacity:.5;cursor:not-allowed}
+.opt:has(input:checked){border-color:var(--green);background:#fff;box-shadow:inset 0 0 0 1px var(--green)}
+.allergen{font-size:.85rem;color:var(--muted);border-left:2px solid var(--gold);padding-left:10px}
+.stepper{display:flex;align-items:center;border:1px solid var(--green);border-radius:4px;height:54px;flex:none}
+.stepper button{width:44px;height:100%;background:none;border:0;font-size:1.3rem;color:var(--green)}
+.stepper output{min-width:24px;text-align:center;font-weight:700;font-variant-numeric:tabular-nums}
+
+/* Generic page */
+.page{padding-block:20px 24px;display:flex;flex-direction:column;gap:20px}
+.back{display:inline-flex;align-items:center;gap:6px;background:none;border:0;color:var(--green);font-weight:600;padding:6px 0}
+.page h1{font-size:2.2rem}
+.line{display:grid;grid-template-columns:1fr auto;gap:6px 12px;padding:14px 0;border-bottom:1px solid var(--line)}
+.line > div{min-width:0}
+.line .n{font-weight:600;color:var(--green)}
+.line .o{font-size:.86rem;color:var(--muted)}
+.line .ctrl{grid-column:1/-1;display:flex;align-items:center;gap:14px}
+.line .stepper{height:40px}
+.line .stepper button{width:38px}
+.totals{display:flex;flex-direction:column;gap:6px}
+.totals div{display:flex;justify-content:space-between}
+.totals .grand{font-family:var(--display);font-size:1.6rem;color:var(--green);font-weight:700;border-top:1px solid var(--gold);padding-top:10px;margin-top:4px}
+.note{font-size:.85rem;color:var(--muted)}
+.empty{text-align:center;padding:40px 0;color:var(--muted)}
+.empty h2{font-size:1.6rem;margin-bottom:8px}
+
+/* Tables */
+.area h2{font-size:1.25rem;margin-bottom:10px}
+.tgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.tbtn{min-height:52px;border:1px solid var(--line);border-radius:4px;background:var(--paper);font-weight:700;font-size:1.05rem;color:var(--green);font-variant-numeric:tabular-nums}
+.tbtn[aria-pressed="true"]{background:var(--green);color:var(--ivory);border-color:var(--green)}
+.tbtn[disabled]{color:var(--muted);text-decoration:line-through;opacity:.55;cursor:not-allowed}
+.find{display:flex;gap:8px}
+.find input{flex:1;min-width:0;height:52px;border:1px solid var(--line);border-radius:4px;background:var(--paper);padding:0 14px;font:inherit;font-size:1.05rem}
+.err{color:var(--alert);font-size:.9rem;margin:0}
+.age{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--gold);background:var(--paper);border-radius:4px;padding:14px;font-size:.92rem}
+.age input{width:22px;height:22px;accent-color:var(--green);flex:none;margin:1px 0 0}
+
+/* Confirm table */
+.confirm{background:var(--green);color:var(--ivory);border-radius:6px;padding:30px 20px;text-align:center;display:flex;flex-direction:column;gap:12px;align-items:center}
+.confirm .caps{color:var(--gold-soft)}
+.confirm .big{font-family:var(--display);font-size:clamp(3.2rem,18vw,5rem);line-height:.95;font-weight:700;color:#fff}
+.confirm p{margin:0;color:var(--gold-soft);max-width:30ch}
+
+/* Stripe simulation */
+.stripe{background:#fff;border-radius:10px;border:1px solid #e3e8ee;padding:20px;display:flex;flex-direction:column;gap:14px;color:#30313d;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+.stripe .tm{align-self:flex-start;background:#fff4e5;color:#8a4b00;border-radius:4px;font-size:.72rem;font-weight:700;padding:3px 8px;letter-spacing:.04em}
+.stripe .amt{font-size:2rem;font-weight:700}
+.apay{height:50px;border-radius:8px;background:#000;color:#fff;border:0;font-weight:600;font-size:1.05rem;width:100%}
+.fake{border:1px solid #e3e8ee;border-radius:6px;padding:12px;color:#6b7280;font-size:.95rem;font-variant-numeric:tabular-nums}
+.paybtn{height:48px;border-radius:6px;background:#0570de;color:#fff;border:0;font-weight:600;width:100%}
+.spinner{width:40px;height:40px;border-radius:50%;border:3px solid var(--gold-soft);border-top-color:var(--green);animation:spin 1s linear infinite;margin:10px auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Tracking */
+.thanks{text-align:center;display:flex;flex-direction:column;gap:8px;align-items:center;padding-top:8px}
+.thanks h1{font-size:2.3rem}
+.receipt{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--gold);border-bottom:1px solid var(--gold)}
+.receipt div{padding:12px 6px;text-align:center}
+.receipt div + div{border-left:1px solid var(--line)}
+.receipt small{display:block;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.receipt b{font-family:var(--display);font-size:1.5rem;color:var(--green);font-variant-numeric:tabular-nums}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.steps li{display:grid;grid-template-columns:34px 1fr auto;gap:12px;align-items:start;position:relative;padding-bottom:22px}
+.steps li:last-child{padding-bottom:0}
+.steps li::before{content:"";position:absolute;left:16px;top:30px;bottom:2px;width:2px;background:var(--line)}
+.steps li:last-child::before{display:none}
+.steps li.done::before{background:var(--green)}
+.node{width:34px;height:34px;border-radius:50%;border:2px solid var(--line);background:var(--paper);display:grid;place-items:center;font-size:.85rem;color:var(--muted);font-weight:700;position:relative;z-index:1}
+.done .node{background:var(--green);border-color:var(--green);color:var(--ivory)}
+.current .node{border-color:var(--gold);color:var(--gold-ink);box-shadow:0 0 0 5px rgba(156,120,64,.18)}
+.steps .t{font-weight:600;color:var(--green);padding-top:5px}
+.steps .d{font-size:.86rem;color:var(--muted)}
+.steps .tm{font-size:.82rem;color:var(--muted);padding-top:7px;font-variant-numeric:tabular-nums}
+.pending .t{color:var(--muted);font-weight:500}
+.live{display:flex;align-items:center;gap:8px;font-size:.82rem;color:var(--muted);justify-content:center}
+
+/* Demo controls */
+.demo-btn{position:fixed;z-index:30;right:max(12px, calc(env(safe-area-inset-right, 0px) + 12px));top:calc(env(safe-area-inset-top, 0px) + 74px);background:var(--gold);color:#fff;border:0;border-radius:999px;padding:6px 12px;font-size:.75rem;font-weight:700;letter-spacing:.06em;box-shadow:0 4px 14px rgba(0,0,0,.15)}
+@media (min-width:600px){.demo-btn{right:calc(50% - var(--col)/2 + 12px)}}
+.demo-panel{position:fixed;z-index:31;right:max(12px, calc(env(safe-area-inset-right, 0px) + 12px));top:calc(env(safe-area-inset-top, 0px) + 108px);width:min(300px, calc(100vw - 24px));background:var(--paper);border:1px solid var(--gold);border-radius:6px;padding:14px;display:flex;flex-direction:column;gap:8px;box-shadow:0 10px 30px rgba(19,42,31,.18);font-size:.88rem}
+@media (min-width:600px){.demo-panel{right:calc(50% - var(--col)/2 + 12px)}}
+.demo-panel .btn{min-height:40px;font-size:.88rem}
+.toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom, 0px));transform:translateX(-50%);background:var(--green);color:var(--ivory);padding:10px 16px;border-radius:4px;font-size:.9rem;z-index:40;opacity:0;transition:opacity .2s;pointer-events:none;max-width:calc(100vw - 32px)}
+.toast.show{opacity:1}
+/* Email receipts */
+.field{width:100%;height:52px;border:1px solid var(--line);border-radius:4px;background:var(--paper);padding:0 14px;font:inherit;font-size:1.05rem}
+.email-opt{display:flex;flex-direction:column;gap:8px}
+.rcpt-box{border:1px solid var(--line);background:var(--paper);border-radius:4px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.rcpt-row{display:flex;gap:12px;align-items:flex-start}
+.rcpt-row svg{flex:none;color:var(--gold);margin-top:2px}
+.rcpt-actions{display:flex;flex-wrap:wrap;gap:0 18px}
+.mail{background:#fff;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.mail .hdr{background:var(--vellum);padding:12px 16px;font-size:.82rem;color:var(--muted);display:flex;flex-direction:column;gap:3px;overflow-wrap:anywhere}
+.mail .bd{padding:20px 18px 24px;display:flex;flex-direction:column;gap:14px}
+.mail img{width:150px;height:auto;margin:0 auto;display:block}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:.9rem;margin:0}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+.mrow{display:flex;justify-content:space-between;gap:12px;font-size:.92rem}
+.mrow span:last-child{font-variant-numeric:tabular-nums;white-space:nowrap}
+.mail .sep{border-top:1px solid var(--line)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="app" id="app">
+
+  <!-- WELCOME -->
+  <section class="screen gutter welcome" id="s-welcome">
+    <img src="logo.jpg" alt="The Rising Sun Inn, Abersychan. Free house, warm welcome, fine beers." width="900" height="842">
+    <p class="lead">Croeso. <em>Drinks to your table.</em></p>
+    <p class="sub">Choose your drinks, pay on your phone and we'll bring them straight over.</p>
+    <div class="hours" id="hours"><span class="dot"></span><span>Table ordering open until 11:00pm</span></div>
+    <button class="btn" id="go-menu">View the drinks menu</button>
+    <p class="small-print">Alcohol is only served to over-18s. We operate Challenge 25, so please have ID ready. Ask a member of the team about allergens.</p>
+  </section>
+
+  <!-- MENU -->
+  <section class="screen" id="s-menu" hidden>
+    <header class="mhead">
+      <div class="top gutter">
+        <button class="mark" id="home">The Rising Sun Inn<small>Abersychan</small></button>
+        <button class="chip-table" id="table-chip">Table not chosen</button>
+      </div>
+      <nav class="cats gutter" id="cats" aria-label="Drink categories"></nav>
+    </header>
+    <div id="pause-banner" class="banner" hidden>
+      <strong>Online ordering temporarily paused</strong>
+      Our bar team is catching up with orders. Please speak to a member of staff or try again shortly.
+    </div>
+    <div class="gutter" id="menu"></div>
+    <p class="note gutter" style="padding-block:24px">All prices include VAT. Drinks are poured to legal measures: spirits 25ml single, 50ml double.</p>
+  </section>
+
+  <!-- BASKET -->
+  <section class="screen gutter page" id="s-basket" hidden>
+    <button class="back" data-go="menu">← Back to menu</button>
+    <h1>Your round</h1>
+    <div id="lines"></div>
+    <div class="totals" id="totals"></div>
+    <div id="basket-pause" class="banner" style="margin:0" hidden>
+      <strong>Online ordering temporarily paused</strong>
+      Your basket is saved. Please speak to a member of staff or try again shortly.
+    </div>
+    <button class="link" data-go="menu" style="align-self:flex-start">+ Add more drinks</button>
+  </section>
+
+  <!-- TABLE -->
+  <section class="screen gutter page" id="s-table" hidden>
+    <button class="back" data-go="basket">← Back to basket</button>
+    <div>
+      <p class="caps" style="margin:0 0 6px">Step 1 of 2</p>
+      <h1>Where are you sitting?</h1>
+    </div>
+    <p class="note" style="margin:0">Your table number is on the stand with the QR code.</p>
+    <div class="find">
+      <label for="tinput" class="sr" hidden>Table number</label>
+      <input id="tinput" inputmode="text" autocomplete="off" placeholder="Type your table number, 1 to 25">
+    </div>
+    <p class="err" id="terr" hidden></p>
+    <div id="areas" style="display:flex;flex-direction:column;gap:20px"></div>
+    <label class="age" id="age-wrap" for="age">
+      <input type="checkbox" id="age">
+      <span>I confirm everyone I'm ordering alcohol for is <b>18 or over</b>. I understand staff may ask for ID and can refuse service, with a full refund.</span>
+    </label>
+    <div class="email-opt">
+      <label for="email"><b style="color:var(--green)">Email me a receipt</b> <span class="note">· optional</span></label>
+      <input id="email" class="field" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com">
+      <p class="err" id="email-err" hidden>Please check your email address, for example name@example.com.</p>
+      <p class="note" style="margin:0">We'll only use this to send your receipt, never for marketing. You can also add it after paying.</p>
+    </div>
+  </section>
+
+  <!-- CONFIRM -->
+  <section class="screen gutter page" id="s-confirm" hidden>
+    <button class="back" data-go="table">← Back</button>
+    <p class="caps" style="margin:0">Step 2 of 2</p>
+    <div class="confirm">
+      <span class="caps">Your drinks will be delivered to</span>
+      <span class="big" id="c-table">Table 12</span>
+      <div class="rule" style="width:60%"><span class="diamond"></span></div>
+      <p id="c-sum">4 drinks · £24.10</p>
+    </div>
+    <p class="note" style="text-align:center;margin:0">Please check this matches the number on your table stand.</p>
+    <div class="express">
+      <p class="caps" style="margin:0;text-align:center">Confirm &amp; pay</p>
+      <button class="wallet" data-wallet="Apple Pay" id="w-apple">Pay with <b>Apple Pay</b></button>
+      <button class="wallet" data-wallet="Google Pay" id="w-google">Pay with <b>Google Pay</b></button>
+      <div class="or">or</div>
+      <button class="btn ghost" id="pay">Pay by card</button>
+      <button class="link" data-go="table" style="align-self:center">Change table</button>
+    </div>
+  </section>
+
+  <!-- STRIPE (simulated) -->
+  <section class="screen gutter page" id="s-pay" hidden>
+    <div class="stripe">
+      <span class="tm">TEST MODE · SIMULATED STRIPE CHECKOUT</span>
+      <div style="font-size:.9rem;color:#6b7280">The Rising Sun Inn</div>
+      <div class="amt" id="p-amt">£24.10</div>
+      <button class="apay" data-paid="Apple Pay">Apple Pay</button>
+      <button class="apay" data-paid="Google Pay">Google Pay</button>
+      <div style="text-align:center;font-size:.8rem;color:#6b7280">or pay with card</div>
+      <div class="fake">4242 4242 4242 4242 &nbsp; 12/30 &nbsp; 123</div>
+      <button class="paybtn" data-paid="Visa •••• 4242">Pay <span id="p-amt2">£24.10</span></button>
+      <div style="font-size:.75rem;color:#6b7280;text-align:center">In the real app this page is hosted by Stripe. Card details never touch our servers.</div>
+    </div>
+    <button class="link" data-go="confirm" style="align-self:center">Cancel and return to the pub</button>
+  </section>
+
+  <!-- VERIFYING -->
+  <section class="screen gutter page" id="s-verify" hidden style="text-align:center;padding-top:80px">
+    <div class="spinner" aria-hidden="true"></div>
+    <h1 style="font-size:1.8rem">Confirming your payment</h1>
+    <p class="note" style="margin:0">We're waiting for Stripe to confirm the payment before your order goes to the bar. This normally takes a few seconds.</p>
+  </section>
+
+  <!-- TRACKING -->
+  <section class="screen gutter page" id="s-track" hidden>
+    <div class="thanks">
+      <span class="caps">The Rising Sun Inn</span>
+      <h1>Thank you for your order</h1>
+      <div class="rule" style="width:50%"><span class="diamond"></span></div>
+    </div>
+    <div class="receipt">
+      <div><small>Order</small><b id="t-no">#1048</b></div>
+      <div><small>Table</small><b id="t-table">12</b></div>
+      <div><small>Paid</small><b id="t-total">£24.10</b></div>
+    </div>
+    <ol class="steps" id="steps"></ol>
+    <p class="live"><span class="dot"></span>Live updates on. Keep this page open or bookmark it to check back.</p>
+    <details>
+      <summary style="cursor:pointer;font-weight:600;color:var(--green)">What you ordered</summary>
+      <div id="t-lines"></div>
+    </details>
+    <div class="rcpt-box" id="t-receipt"></div>
+    <button class="btn" id="more">Order more drinks</button>
+    <p class="note" style="text-align:center;margin:0">Need to change something? Speak to the bar team and quote your order number.</p>
+  </section>
+
+  <!-- RECEIPT EMAIL PREVIEW -->
+  <section class="screen gutter page" id="s-receipt" hidden>
+    <button class="back" data-go="track">← Back to your order</button>
+    <p class="caps" style="margin:0">Receipt email preview</p>
+    <div class="mail" id="rc"></div>
+  </section>
+</div>
+
+<div class="bar" id="bar" hidden><button class="btn" id="bar-btn"></button></div>
+
+<div class="wwrap" id="wwrap" hidden>
+  <div class="wsheet" role="dialog" aria-modal="true" aria-labelledby="w-title">
+    <div class="wtop"><b id="w-title">Apple Pay</b><span class="wtag">SIMULATED</span><button class="wcancel" id="w-cancel">Cancel</button></div>
+    <dl class="wkv"><dt>Card</dt><dd id="w-card">Visa •••• 4242</dd><dt>Pay</dt><dd>The Rising Sun Inn</dd></dl>
+    <div class="wamt"><span>Total</span><b id="w-amt">£0.00</b></div>
+    <button class="wgo" id="w-go">Confirm with Face ID</button>
+  </div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<div class="sheet gutter" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-name">
+  <button class="close" id="sh-close" aria-label="Close">✕</button>
+  <div class="body" id="sh-body"></div>
+  <div class="foot">
+    <div class="stepper"><button id="q-minus" aria-label="One fewer">−</button><output id="q">1</output><button id="q-plus" aria-label="One more">+</button></div>
+    <button class="btn" id="sh-add"></button>
+  </div>
+</div>
+
+<button class="demo-btn" id="demo-btn" aria-expanded="false">PROTOTYPE</button>
+<div class="demo-panel" id="demo" hidden>
+  <b style="color:var(--green)">Prototype controls</b>
+  <span class="note">These stand in for the bar iPad. Nothing is charged; nothing is saved to a server.</span>
+  <button class="btn ghost" id="d-pause">Pause online orders</button>
+  <button class="btn ghost" id="d-advance">Bar: move order to next stage</button>
+  <button class="btn ghost" id="d-reset">Start again</button>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+// ---------- Sample menu (placeholder prices, all in pence) ----------
+const ALC = true;
+const MIXERS = {id:"mixer",name:"Add a mixer",required:false,options:[
+  {id:"none",label:"No mixer",price:0},{id:"ft",label:"Fever-Tree Indian tonic",price:180},
+  {id:"ftl",label:"Fever-Tree Light tonic",price:180},{id:"lem",label:"Lemonade",price:120},
+  {id:"coke",label:"Coca-Cola",price:120},{id:"dcoke",label:"Diet Coke",price:120}]};
+const SERVE = {id:"serve",name:"How would you like it?",required:true,options:[
+  {id:"neat",label:"Neat",price:0},{id:"ice",label:"With ice",price:0},{id:"water",label:"Splash of water",price:0}]};
+const MILK = {id:"milk",name:"Milk",required:true,options:[
+  {id:"whole",label:"Whole milk",price:0},{id:"semi",label:"Semi-skimmed",price:0},{id:"oat",label:"Oat milk",price:40}]};
+const HP = (h,p)=>[{id:"half",label:"Half pint",price:h},{id:"pint",label:"Pint",price:p}];
+const SD = (s,d)=>[{id:"single",label:"Single 25ml",price:s},{id:"double",label:"Double 50ml",price:d}];
+const WINE = (a,b,c,bt)=>[{id:"125",label:"125ml glass",price:a},{id:"175",label:"175ml glass",price:b},{id:"250",label:"250ml glass",price:c},{id:"btl",label:"Bottle 750ml",price:bt}];
+
+const MENU = [
+ {id:"draught",name:"Draught Beer & Lager",items:[
+  {id:"sa",name:"Brains SA",desc:"Cardiff's classic best bitter. Malty, smooth and easy-drinking.",abv:4.2,welsh:true,alc:ALC,allergens:"Contains gluten (barley)",variants:HP(270,520)},
+  {id:"cwtch",name:"Tiny Rebel Cwtch",desc:"Award-winning Welsh red ale from Newport. Caramel malt and citrus hops.",abv:4.6,welsh:true,alc:ALC,allergens:"Contains gluten (barley)",variants:HP(310,600)},
+  {id:"moretti",name:"Birra Moretti",desc:"Crisp Italian lager with a gentle bitterness.",abv:4.6,alc:ALC,allergens:"Contains gluten (barley)",variants:HP(320,620)},
+  {id:"guinness",name:"Guinness",desc:"Irish stout, poured properly and left to settle.",abv:4.2,alc:ALC,available:false,allergens:"Contains gluten (barley)",variants:HP(310,600)},
+  {id:"carling",name:"Carling",desc:"Refreshing, easy-going British lager.",abv:3.7,alc:ALC,allergens:"Contains gluten (barley)",variants:HP(290,560)}]},
+ {id:"bottles",name:"Bottled Beer & Cider",items:[
+  {id:"blackdragon",name:"Gwynt y Ddraig Black Dragon",desc:"Medium-dry Welsh farmhouse cider. 500ml bottle.",abv:7.2,welsh:true,alc:ALC,allergens:"Contains sulphites",variants:[{id:"btl",label:"500ml bottle",price:580}]},
+  {id:"corona",name:"Corona Extra",desc:"Served ice cold with a wedge of lime. 330ml.",abv:4.5,alc:ALC,allergens:"Contains gluten (barley)",variants:[{id:"btl",label:"330ml bottle",price:460}]},
+  {id:"oldmout",name:"Old Mout Berries & Lime",desc:"Fruity, refreshing cider over ice. 500ml.",abv:4.0,alc:ALC,allergens:"Contains sulphites",variants:[{id:"btl",label:"500ml bottle",price:560}]}]},
+ {id:"white",name:"White Wine",items:[
+  {id:"sauv",name:"Sauvignon Blanc, Marlborough",desc:"Zesty and fresh: gooseberry, lime and passion fruit.",abv:12.5,alc:ALC,allergens:"Contains sulphites",variants:WINE(500,650,850,2400).map(v=>v.id==="250"?{...v,available:false}:v)},
+  {id:"pg",name:"Pinot Grigio, Veneto",desc:"Light, dry and delicate with hints of pear.",abv:12,alc:ALC,allergens:"Contains sulphites",variants:WINE(460,600,790,2200)}]},
+ {id:"red",name:"Red Wine",items:[
+  {id:"merlot",name:"Merlot, Chile",desc:"Soft and round, with plum and dark cherry.",abv:13,alc:ALC,allergens:"Contains sulphites",variants:WINE(480,620,820,2300)},
+  {id:"malbec",name:"Malbec, Mendoza",desc:"Rich and velvety, blackberry and a little spice.",abv:13.5,alc:ALC,allergens:"Contains sulphites",variants:WINE(560,720,950,2700)}]},
+ {id:"rose",name:"Rosé & Sparkling",items:[
+  {id:"zin",name:"White Zinfandel, California",desc:"Pink, sweet-leaning and summery: strawberry and watermelon.",abv:10.5,alc:ALC,allergens:"Contains sulphites",variants:WINE(460,600,790,2200)},
+  {id:"prosecco",name:"Prosecco DOC",desc:"Light, fresh bubbles with green apple and pear.",abv:11,alc:ALC,allergens:"Contains sulphites",variants:[{id:"mini",label:"200ml bottle",price:750},{id:"btl",label:"Bottle 750ml",price:2900}]}]},
+ {id:"spirits",name:"Spirits",items:[
+  {id:"gordons",name:"Gordon's Gin",desc:"London dry gin. Juniper-forward and classic.",abv:37.5,alc:ALC,allergens:"",variants:SD(450,700),mods:[MIXERS]},
+  {id:"penderyn",name:"Penderyn Madeira",desc:"Single malt Welsh whisky from the Brecon Beacons, finished in Madeira casks.",abv:46,welsh:true,alc:ALC,allergens:"",variants:SD(520,880),mods:[SERVE]},
+  {id:"smirnoff",name:"Smirnoff Red",desc:"Clean, smooth vodka.",abv:37.5,alc:ALC,allergens:"",variants:SD(420,660),mods:[MIXERS]},
+  {id:"jameson",name:"Jameson",desc:"Triple-distilled Irish whiskey.",abv:40,alc:ALC,allergens:"",variants:SD(450,720),mods:[SERVE]}]},
+ {id:"cocktails",name:"Cocktails",items:[
+  {id:"espresso",name:"Espresso Martini",desc:"Vodka, coffee liqueur and a fresh shot of espresso.",abv:null,alc:ALC,allergens:"",variants:[{id:"std",label:"Cocktail",price:950}]},
+  {id:"aperol",name:"Aperol Spritz",desc:"Aperol, Prosecco and soda with an orange slice.",abv:null,alc:ALC,allergens:"Contains sulphites",variants:[{id:"std",label:"Cocktail",price:850}]}]},
+ {id:"soft",name:"Soft Drinks",items:[
+  {id:"coke",name:"Coca-Cola",desc:"From the tap, with ice and lemon.",alc:false,allergens:"",variants:[{id:"half",label:"Half pint",price:190},{id:"pint",label:"Pint",price:320}]},
+  {id:"dietcoke",name:"Diet Coke",desc:"From the tap, with ice and lemon.",alc:false,allergens:"",variants:[{id:"half",label:"Half pint",price:190},{id:"pint",label:"Pint",price:320}]},
+  {id:"j2o",name:"J2O Orange & Passion Fruit",desc:"275ml bottle.",alc:false,allergens:"",variants:[{id:"btl",label:"275ml bottle",price:340}]}]},
+ {id:"af",name:"Alcohol-Free",items:[
+  {id:"g00",name:"Guinness 0.0",desc:"All the stout, none of the alcohol. 440ml can poured.",abv:0,alc:false,allergens:"Contains gluten (barley)",variants:[{id:"can",label:"440ml",price:420}]},
+  {id:"luckysaint",name:"Lucky Saint",desc:"Unfiltered alcohol-free lager. 330ml.",abv:0.5,alc:false,allergens:"Contains gluten (barley)",variants:[{id:"btl",label:"330ml bottle",price:460}]}]},
+ {id:"hot",name:"Hot Drinks",items:[
+  {id:"latte",name:"Latte",desc:"Double shot with steamed milk.",alc:false,allergens:"Contains milk unless oat milk is chosen",variants:[{id:"reg",label:"Regular",price:320}],mods:[MILK]},
+  {id:"americano",name:"Americano",desc:"Double shot, topped with hot water.",alc:false,allergens:"",variants:[{id:"reg",label:"Regular",price:280}]},
+  {id:"tea",name:"Pot of Tea",desc:"Glengettie Welsh tea, milk on the side.",welsh:true,alc:false,allergens:"Served with milk",variants:[{id:"pot",label:"Pot for one",price:260}]}]}
+];
+// One list of tables for now. Areas (bar, restaurant, garden) can be added later without changing the checkout.
+const AREAS = [
+  {name:"Tables",tables:Array.from({length:25},(_,i)=>String(i+1))}
+];
+// Soft drinks and anything served with a mixer get a "No ice" tick box.
+const iceOpt = it => MENU.find(c=>c.id==="soft").items.includes(it) || (it.mods||[]).includes(MIXERS);
+
+// ---------- State ----------
+const $ = s=>document.querySelector(s);
+const gbp = p=>"£"+(p/100).toFixed(2);
+const ITEMS = Object.fromEntries(MENU.flatMap(c=>c.items.map(i=>[i.id,i])));
+const store = {get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+let basket = store.get("rs-basket",[]);
+let table = store.get("rs-table",null);
+let paused = false, pickedTable = null, order = null, stage = 0, stageTimer = null;
+
+function unitPrice(line){const it=ITEMS[line.item];const v=it.variants.find(x=>x.id===line.variant);
+  let p=v.price;for(const g of it.mods||[]){const o=g.options.find(x=>x.id===line.mods[g.id]);if(o)p+=o.price}return p}
+function lineDesc(line){const it=ITEMS[line.item];const v=it.variants.find(x=>x.id===line.variant);
+  const extras=(it.mods||[]).map(g=>g.options.find(x=>x.id===line.mods[g.id])).filter(o=>o&&o.id!=="none").map(o=>o.label);
+  if(line.mods.noice) extras.push("No ice");
+  return [v.label,...extras].join(" · ")}
+const total = ()=>basket.reduce((s,l)=>s+unitPrice(l)*l.qty,0);
+const count = ()=>basket.reduce((s,l)=>s+l.qty,0);
+const save = ()=>{store.set("rs-basket",basket);store.set("rs-table",table)};
+
+// ---------- Navigation ----------
+let current="welcome";
+function go(name){
+  document.querySelectorAll(".screen").forEach(s=>s.hidden = s.id!=="s-"+name);
+  current=name; window.scrollTo(0,0); renderBar();
+  if(name==="basket")renderBasket(); if(name==="table")renderTables(); if(name==="confirm")renderConfirm(); if(name==="receipt")renderReceipt();
+}
+document.addEventListener("click",e=>{const g=e.target.closest("[data-go]");if(g)go(g.dataset.go)});
+$("#go-menu").onclick=()=>go("menu"); $("#home").onclick=()=>go("welcome");
+$("#table-chip").onclick=()=>{ if(count()) go("table"); else toast("Choose your drinks first, then your table.") };
+
+function renderBar(){
+  const show = (current==="menu" && count()>0) || current==="basket" && count()>0;
+  $("#bar").hidden=!show;
+  const b=$("#bar-btn");
+  if(current==="menu"){b.disabled=false;b.innerHTML=`<span class="count">${count()}</span><span>View basket</span><span class="price">${gbp(total())}</span>`;b.onclick=()=>go("basket")}
+  if(current==="basket"){b.disabled=paused;b.innerHTML=`<span>Choose table &amp; pay</span><span class="price">${gbp(total())}</span>`;b.onclick=()=>{if(!paused)go("table")}}
+  $("#table-chip").textContent = table ? "Table "+table : "Table not chosen";
+}
+
+// ---------- Menu ----------
+function renderMenu(){
+  $("#cats").innerHTML = `<button class="cat" data-cat="all" aria-current="${activeCat==="all"}">All drinks</button>` +
+    MENU.map(c=>`<button class="cat" data-cat="${c.id}" aria-current="${activeCat===c.id}">${c.name}</button>`).join("");
+  $("#menu").innerHTML = MENU.map(c=>`
+    <section class="section" id="cat-${c.id}">
+      <div class="section-h"><h2>${c.name}</h2><span>${c.items.length} drinks</span></div>
+      ${c.items.map(it=>{
+        const out = it.available===false;
+        return `<button class="item ${out?"is-out":""}" data-item="${it.id}" ${out?'aria-disabled="true"':""}>
+          <div><div class="name">${it.name}</div><div class="desc">${it.desc}</div>
+            <div class="meta">${out?'<span class="tag out">Sold out tonight</span>':""}${it.welsh?'<span class="tag welsh">Welsh</span>':""}${it.abv!=null&&it.abv!==undefined?`<span class="tag">${it.abv}% ABV</span>`:""}</div></div>
+          <div class="prices">${it.variants.slice(0,3).map(v=>`<span class="price" ${v.available===false?'style="text-decoration:line-through;opacity:.5"':""}><small>${shortLabel(v.label)}</small>${gbp(v.price)}</span>`).join("")}${it.variants.length>3?'<small style="color:var(--muted)">+ bottle</small>':""}</div>
+        </button>`}).join("")}
+    </section>`).join("");
+}
+const shortLabel = l=>l.replace(" pint","").replace(" glass","").replace(" 25ml","").replace(" 50ml","").replace("Cocktail","").replace("Regular","");
+// Category chips filter the menu: tapping one shows just that category's drinks underneath.
+let activeCat="all";
+function applyCat(){
+  document.querySelectorAll("#menu .section").forEach(s=>s.hidden = activeCat!=="all" && s.id!=="cat-"+activeCat);
+  document.querySelectorAll(".cat").forEach(x=>x.setAttribute("aria-current",x.dataset.cat===activeCat));
+}
+$("#cats").addEventListener("click",e=>{const b=e.target.closest(".cat");if(!b)return;
+  activeCat=b.dataset.cat; applyCat();
+  const cats=$("#cats"); cats.scrollTo({left:b.offsetLeft-(cats.clientWidth-b.offsetWidth)/2,behavior:"smooth"});
+  window.scrollTo({top:0});
+});
+$("#menu").addEventListener("click",e=>{const b=e.target.closest(".item");if(!b)return;
+  const it=ITEMS[b.dataset.item]; if(it.available===false){toast(it.name+" is sold out tonight. Sorry!");return} openSheet(it)});
+
+// ---------- Product sheet ----------
+let sh = null; // {item, variant, mods, qty, editIndex}
+function openSheet(it, editIndex=null){
+  const ex = editIndex!=null ? basket[editIndex] : null;
+  const firstVar = it.variants.find(v=>v.available!==false);
+  sh = {item:it, variant: ex?ex.variant:(it.variants.find(v=>v.id==="pint"&&v.available!==false)||firstVar).id,
+        mods: ex?{...ex.mods}:Object.fromEntries((it.mods||[]).map(g=>[g.id,g.options[0].id])), qty: ex?ex.qty:1, editIndex};
+  $("#sh-body").innerHTML = `
+    <div><p class="caps" style="margin:0 0 6px">${MENU.find(c=>c.items.includes(it)).name}</p><h3 id="sh-name">${it.name}</h3></div>
+    <p style="margin:0;color:var(--muted)">${it.desc}${it.abv?` <b style="color:var(--ink)">${it.abv}% ABV.</b>`:""}</p>
+    ${it.allergens?`<p class="allergen" style="margin:0">${it.allergens}. Ask staff for full allergen details.</p>`:""}
+    <fieldset><legend>Size</legend>${it.variants.map(v=>`
+      <label class="opt ${v.available===false?"disabled":""}"><input type="radio" name="variant" value="${v.id}" ${v.id===sh.variant?"checked":""} ${v.available===false?"disabled":""}>
+        <span class="l">${v.label}${v.available===false?' <small style="color:var(--alert)">· unavailable</small>':""}</span><span class="price">${gbp(v.price)}</span></label>`).join("")}</fieldset>
+    ${(it.mods||[]).map(g=>`<fieldset><legend>${g.name} <span>${g.required?"· choose one":"· optional"}</span></legend>${g.options.map(o=>`
+      <label class="opt"><input type="radio" name="mod-${g.id}" value="${o.id}" ${sh.mods[g.id]===o.id?"checked":""}>
+        <span class="l">${o.label}</span><span class="price" style="font-weight:500;color:var(--muted)">${o.price?"+"+gbp(o.price):""}</span></label>`).join("")}</fieldset>`).join("")}
+    ${iceOpt(it)?`<fieldset><legend>Ice</legend><label class="opt"><input type="checkbox" id="noice" ${sh.mods.noice?"checked":""}><span class="l">No ice</span></label></fieldset>`:""}`;
+  $("#sh-body").onchange = e=>{const t=e.target; if(t.name==="variant")sh.variant=t.value; else if(t.name.startsWith("mod-"))sh.mods[t.name.slice(4)]=t.value;
+    else if(t.id==="noice"){ if(t.checked) sh.mods.noice=true; else delete sh.mods.noice }
+    renderSheetFoot()};
+  renderSheetFoot();
+  $("#scrim").classList.add("open"); $("#sheet").classList.add("open"); $("#sh-body").scrollTop=0;
+  setTimeout(()=>$("#sh-close").focus(),50);
+}
+function renderSheetFoot(){ $("#q").textContent=sh.qty;
+  const p=unitPrice({item:sh.item.id,variant:sh.variant,mods:sh.mods})*sh.qty;
+  $("#sh-add").innerHTML = `${sh.editIndex!=null?"Update":"Add to basket"} · <span class="price">${gbp(p)}</span>` }
+function closeSheet(){ $("#scrim").classList.remove("open"); $("#sheet").classList.remove("open") }
+$("#scrim").onclick=closeSheet; $("#sh-close").onclick=closeSheet;
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet()});
+$("#q-minus").onclick=()=>{if(sh.qty>1){sh.qty--;renderSheetFoot()}};
+$("#q-plus").onclick=()=>{if(sh.qty<20){sh.qty++;renderSheetFoot()}};
+$("#sh-add").onclick=()=>{
+  const line={item:sh.item.id,variant:sh.variant,mods:sh.mods,qty:sh.qty};
+  if(sh.editIndex!=null) basket.splice(sh.editIndex,1);
+  const key=l=>l.item+"|"+l.variant+"|"+JSON.stringify(l.mods);
+  const same=basket.find(l=>key(l)===key(line));
+  if(same) same.qty=Math.min(20,same.qty+line.qty); else basket.push(line);
+  save(); closeSheet();
+  toast(sh.editIndex!=null?"Basket updated":`Added ${line.qty} × ${sh.item.name}`);
+  if(current==="basket")renderBasket(); renderBar();
+};
+
+// ---------- Basket ----------
+function renderBasket(){
+  if(!basket.length){
+    $("#lines").innerHTML=`<div class="empty"><h2>Your basket is empty</h2><p>Have a look at the menu and pick your round.</p><button class="btn" data-go="menu" style="margin-top:12px">Browse drinks</button></div>`;
+    $("#totals").innerHTML=""; renderBar(); return }
+  $("#lines").innerHTML = basket.map((l,i)=>`<div class="line">
+      <div><div class="n">${ITEMS[l.item].name}</div><div class="o">${lineDesc(l)} · ${gbp(unitPrice(l))} each</div></div>
+      <div class="price">${gbp(unitPrice(l)*l.qty)}</div>
+      <div class="ctrl"><div class="stepper"><button data-dec="${i}" aria-label="One fewer">−</button><output>${l.qty}</output><button data-inc="${i}" aria-label="One more">+</button></div>
+        <button class="link" data-edit="${i}">Change</button><button class="link" data-rm="${i}" style="color:var(--muted)">Remove</button></div></div>`).join("");
+  $("#totals").innerHTML = `<div class="grand"><span>Total</span><span class="price">${gbp(total())}</span></div>
+    <span class="note">Includes VAT. Prices and availability are checked again before you pay.</span>`;
+  $("#basket-pause").hidden=!paused; renderBar();
+}
+$("#lines").addEventListener("click",e=>{const t=e.target.closest("button");if(!t)return;const d=t.dataset;
+  if(d.inc){basket[d.inc].qty=Math.min(20,basket[d.inc].qty+1)}
+  else if(d.dec){if(--basket[d.dec].qty<1)basket.splice(d.dec,1)}
+  else if(d.rm){basket.splice(d.rm,1)}
+  else if(d.edit){openSheet(ITEMS[basket[d.edit].item],+d.edit);return}
+  else return; save(); renderBasket()});
+
+// ---------- Table ----------
+const ALL_T = AREAS.flatMap(a=>a.tables.map(t=>({t,area:a.name,off:(a.disabled||[]).includes(t)})));
+function renderTables(){
+  pickedTable = pickedTable || table;
+  $("#areas").innerHTML = AREAS.map(a=>`<div class="area">${AREAS.length>1?`<h2>${a.name}</h2>`:""}<div class="tgrid">${a.tables.map(t=>{
+    const off=(a.disabled||[]).includes(t);
+    return `<button class="tbtn" data-t="${t}" aria-pressed="${pickedTable===t}" ${off?'disabled aria-label="'+t+', closed tonight"':""}>${t}</button>`}).join("")}</div></div>`).join("");
+  const needsAge = basket.some(l=>ITEMS[l.item].alc);
+  $("#age-wrap").hidden = !needsAge;
+  $("#tinput").value = pickedTable||""; $("#terr").hidden=true;
+  tableBar();
+}
+function tableBar(){
+  $("#bar").hidden=false; const b=$("#bar-btn");
+  const em = $("#email").value.trim(), emailOk = !em || EMAIL_RE.test(em);
+  $("#email-err").hidden = emailOk || document.activeElement===$("#email");
+  const ok = pickedTable && emailOk && ( $("#age-wrap").hidden || $("#age").checked );
+  b.disabled=!ok; b.innerHTML = `<span>${pickedTable?"Continue with table "+pickedTable:"Choose a table to continue"}</span><span>→</span>`;
+  b.onclick=()=>{ if(!pickedTable){return} if(!$("#age-wrap").hidden && !$("#age").checked){toast("Please confirm the age declaration.");return}
+    table=pickedTable; save(); go("confirm") };
+}
+$("#areas").addEventListener("click",e=>{const b=e.target.closest(".tbtn");if(!b||b.disabled)return;pickedTable=b.dataset.t;
+  document.querySelectorAll(".tbtn").forEach(x=>x.setAttribute("aria-pressed",x===b)); $("#tinput").value=pickedTable; $("#terr").hidden=true; tableBar()});
+$("#tinput").addEventListener("input",e=>{
+  const v=e.target.value.trim().toUpperCase().replace(/^TABLE\s*/,"").replace(/^GARDEN\s*/,"G");
+  const m=ALL_T.find(x=>x.t===v); const err=$("#terr");
+  if(!v){pickedTable=null;err.hidden=true}
+  else if(!m){pickedTable=null;err.hidden=false;err.textContent=`We can't find table "${e.target.value.trim()}". Check the number on your table stand.`}
+  else if(m.off){pickedTable=null;err.hidden=false;err.textContent=`Table ${m.t} isn't taking orders tonight. Please check your table number.`}
+  else {pickedTable=m.t;err.hidden=true}
+  document.querySelectorAll(".tbtn").forEach(x=>x.setAttribute("aria-pressed",x.dataset.t===pickedTable)); tableBar()});
+$("#age").addEventListener("change",tableBar);
+$("#email").addEventListener("input",tableBar); $("#email").addEventListener("blur",tableBar);
+const EMAIL_RE=/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const mask = e=>e.replace(/^(.)(.*)(@.*)$/,(m,a,b,c)=>a+"•".repeat(Math.min(Math.max(b.length,1),5))+c);
+
+// ---------- Confirm & pay ----------
+const tableName = t=>t.startsWith("G")?"Garden "+t.slice(1):"Table "+t;
+function renderConfirm(){ $("#bar").hidden=true;
+  $("#c-table").textContent=tableName(table);
+  $("#c-sum").textContent=`${count()} drink${count()===1?"":"s"} · ${gbp(total())}`;
+}
+$("#pay").onclick=()=>{ if(paused){toast("Online ordering is paused right now.");go("basket");return}
+  $("#p-amt").textContent=gbp(total()); $("#p-amt2").textContent=gbp(total()); go("pay") };
+function completePayment(method){
+  go("verify"); $("#bar").hidden=true;
+  setTimeout(()=>{ order={no:1048+Math.floor(Math.random()*40),table,lines:basket.map(l=>({...l})),total:total(),times:[new Date()],method,email:$("#email").value.trim()||null};
+    basket=[]; save(); stage=0; renderTrack(); go("track"); $("#bar").hidden=true; autoAdvance();
+    if(order.email) toast("Receipt sent to "+mask(order.email)) },2200)}
+document.querySelectorAll("[data-paid]").forEach(b=>b.onclick=()=>completePayment(b.dataset.paid));
+
+// Express checkout. In the real app Stripe shows only the wallet this phone supports; the prototype guesses from the browser.
+const UA=navigator.userAgent, onApple=/iPhone|iPad|iPod|Macintosh/.test(UA)&&!/Android/.test(UA), onAndroid=/Android/.test(UA);
+$("#w-google").hidden=onApple; $("#w-apple").hidden=onAndroid;
+let wallet=null;
+document.querySelectorAll("[data-wallet]").forEach(b=>b.onclick=()=>{
+  if(paused){toast("Online ordering is paused right now.");go("basket");return}
+  wallet=b.dataset.wallet; const g=wallet==="Google Pay";
+  $("#w-title").textContent=wallet; $("#w-card").textContent=g?"Mastercard •••• 8210":"Visa •••• 4242";
+  $("#w-amt").textContent=gbp(total()); $("#w-go").textContent=g?"Continue":"Confirm with Face ID";
+  $("#wwrap").hidden=false; $("#w-go").focus()});
+const closeWallet=()=>{$("#wwrap").hidden=true};
+$("#w-cancel").onclick=closeWallet;
+$("#wwrap").addEventListener("click",e=>{if(e.target.id==="wwrap")closeWallet()});
+$("#w-go").onclick=()=>{closeWallet(); completePayment(wallet+" ("+$("#w-card").textContent+")")};
+
+// ---------- Tracking ----------
+const STAGES=[["Order received","Paid and sent to the bar"],["Preparing","The bar team is pouring your drinks"],["Ready","On a tray and heading your way"],["Delivered","Enjoy! Iechyd da"]];
+const hm = d=>d.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
+function renderTrack(){
+  $("#t-no").textContent="#"+order.no; $("#t-table").textContent=order.table; $("#t-total").textContent=gbp(order.total);
+  renderReceiptBox();
+  $("#steps").innerHTML=STAGES.map((s,i)=>`<li class="${i<stage?"done":i===stage?(stage===3?"done":"current"):"pending"}">
+    <span class="node">${i<stage||(i===3&&stage===3)?"✓":i+1}</span><div><div class="t">${s[0]}</div>${i<=stage?`<div class="d">${s[1]}</div>`:""}</div>
+    <span class="tm">${order.times[i]?hm(order.times[i]):""}</span></li>`).join("");
+  $("#t-lines").innerHTML=order.lines.map(l=>`<div class="line"><div><div class="n">${l.qty} × ${ITEMS[l.item].name}</div><div class="o">${lineDesc(l)}</div></div><div class="price">${gbp(unitPrice(l)*l.qty)}</div></div>`).join("");
+}
+const ENVELOPE='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M3.5 6l8.5 7 8.5-7"/></svg>';
+function renderReceiptBox(){
+  const box=$("#t-receipt");
+  if(order.email){
+    box.innerHTML=`<div class="rcpt-row">${ENVELOPE}<div><b style="color:var(--green)">Receipt sent</b><div class="note">We've emailed your VAT receipt to ${mask(order.email)}.</div></div></div>
+      <div class="rcpt-actions"><button class="link" data-go="receipt">Preview receipt</button><button class="link" id="r-change">Send to a different address</button></div>`;
+    $("#r-change").onclick=()=>{order.email=null;renderReceiptBox();$("#r-email").focus()};
+  } else {
+    box.innerHTML=`<label for="r-email"><b style="color:var(--green)">Email me a receipt</b> <span class="note">· optional</span></label>
+      <div class="find"><input id="r-email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com"><button class="btn" id="r-send" style="width:auto">Send</button></div>
+      <p class="err" id="r-err" hidden>Please check your email address, for example name@example.com.</p>
+      <button class="link" data-go="receipt" style="align-self:flex-start">Preview receipt</button>`;
+    $("#r-send").onclick=()=>{const v=$("#r-email").value.trim(); if(!EMAIL_RE.test(v)){$("#r-err").hidden=false;return}
+      order.email=v; renderReceiptBox(); toast("Receipt sent to "+mask(v))};
+  }
+}
+function renderReceipt(){
+  const d=order.times[0], vat=Math.round(order.total/6);
+  const when=d.toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short",year:"numeric"})+", "+hm(d);
+  $("#rc").innerHTML=`<div class="hdr"><span><b>From:</b> The Rising Sun Inn</span><span><b>To:</b> ${order.email||"you@example.com"}</span><span><b>Subject:</b> Your receipt from The Rising Sun Inn · Order #${order.no}</span></div>
+    <div class="bd">
+      <img src="logo.jpg" alt="The Rising Sun Inn, Abersychan" width="150" height="150">
+      <div style="text-align:center"><h2 style="font-size:1.7rem">Diolch. Thank you.</h2><p class="note" style="margin:4px 0 0">Here's your receipt for drinks ordered to your table.</p></div>
+      <dl class="kv"><dt>Order</dt><dd>#${order.no}</dd><dt>Date</dt><dd>${when}</dd><dt>Table</dt><dd>${tableName(order.table)}</dd><dt>Paid by</dt><dd>${order.method}</dd></dl>
+      <div class="sep"></div>
+      ${order.lines.map(l=>`<div class="mrow"><span>${l.qty} × ${ITEMS[l.item].name}<br><small class="note">${lineDesc(l)}</small></span><span>${gbp(unitPrice(l)*l.qty)}</span></div>`).join("")}
+      <div class="sep"></div>
+      <div class="mrow"><span>Net amount</span><span>${gbp(order.total-vat)}</span></div>
+      <div class="mrow"><span>VAT at 20%</span><span>${gbp(vat)}</span></div>
+      <div class="mrow" style="font-family:var(--display);font-size:1.4rem;font-weight:700;color:var(--green)"><span>Total paid</span><span>${gbp(order.total)}</span></div>
+      <div class="sep"></div>
+      <p class="note" style="margin:0;text-align:center">The Rising Sun Inn, Abersychan · VAT reg. no. to be added<br>Questions about this order? Speak to the bar team and quote #${order.no}. Any refund is confirmed in a separate email.</p>
+    </div>`;
+}
+function advance(){ if(!order||stage>=3)return; stage++; order.times[stage]=new Date(); renderTrack();
+  toast(["","Your drinks are being prepared","Your drinks are on their way","Delivered. Cheers!"][stage]) }
+function autoAdvance(){ clearTimeout(stageTimer); if(stage<3) stageTimer=setTimeout(()=>{advance();autoAdvance()}, stage===0?6000:8000) }
+$("#more").onclick=()=>{ go("menu"); toast("Your table is still set to "+tableName(table)) };
+
+// ---------- Prototype controls ----------
+$("#demo-btn").onclick=()=>{const p=$("#demo");p.hidden=!p.hidden;$("#demo-btn").setAttribute("aria-expanded",!p.hidden)};
+$("#d-pause").onclick=()=>{ paused=!paused;
+  $("#d-pause").textContent=paused?"Resume online orders":"Pause online orders";
+  $("#pause-banner").hidden=!paused; $("#basket-pause").hidden=!paused;
+  $("#hours").innerHTML=paused?'<span class="dot off"></span><span>Table ordering paused for a moment</span>':'<span class="dot"></span><span>Table ordering open until 11:00pm</span>';
+  renderBar(); toast(paused?"Ordering paused for every customer":"Ordering resumed") };
+$("#d-advance").onclick=()=>{ if(!order){toast("Place an order first.");return} clearTimeout(stageTimer); advance() };
+$("#d-reset").onclick=()=>{ clearTimeout(stageTimer); basket=[];table=null;pickedTable=null;order=null;save(); $("#age").checked=false; $("#email").value=""; go("welcome") };
+
+let tt; function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(tt);tt=setTimeout(()=>t.classList.remove("show"),2200)}
+
+// Example starting state: a round already in the basket so the flow can be tried straight away.
+if(!basket.length && store.get("rs-seeded",false)===false){
+  basket=[{item:"moretti",variant:"pint",mods:{},qty:2},{item:"sauv",variant:"175",mods:{},qty:1},{item:"dietcoke",variant:"pint",mods:{},qty:1}];
+  store.set("rs-seeded",true); save();
+}
+renderMenu(); applyCat(); go("welcome");
+</script>

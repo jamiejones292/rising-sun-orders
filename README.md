@@ -8,6 +8,7 @@ code, order and pay for drinks on their phone, and the order appears on the bar 
 | `drinksorder.app` | Customers (the table QR code) |
 | `drinksorder.app/staff` | Bar iPads |
 | `drinksorder.app/admin` | Owner and managers |
+| `drinksorder.app/order/…` | Customer's private order tracking link |
 | `drinksorder.app/demo` | The original clickable design demo |
 
 ## Build progress
@@ -20,7 +21,7 @@ code, order and pay for drinks on their phone, and the order appears on the bar 
 | 4 | Admin: drinks, prices, stock, categories, tables, QR code, settings | Done (staff, orders, refunds and reports follow later stages) |
 | 5 | Payments: Apple Pay, Google Pay, card (provider to be confirmed) | |
 | 6 | Bar screen: sign-in, live orders, tick-off, Order Fulfilled, admin section | Done |
-| 7 | Customer menu, basket, checkout, tracking and receipts | |
+| 7 | Customer menu, basket, table and confirm, live tracking | Done up to payment (hidden until switched on; preview at `/?preview`) |
 | 8 | Testing: payments, two iPads, Wi-Fi loss, timings | |
 | 9 | Go live on drinksorder.app | |
 

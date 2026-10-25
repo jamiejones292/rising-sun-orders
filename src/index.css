@@ -53,6 +53,15 @@
     font-family: var(--font-display);
     color: var(--color-forest);
     text-wrap: balance;
+  }
+  /* Cormorant's default old-style figures make "12" read as "I2" and "£8.80" as
+     "£8.8o". Use modern figures in the display face everywhere; setting the
+     Tailwind variable keeps this when tabular-nums is also applied. */
+  h1,
+  h2,
+  h3,
+  .font-display {
+    --tw-numeric-figure: lining-nums;
     font-variant-numeric: lining-nums;
   }
   :focus-visible {

@@ -24,6 +24,7 @@ export default function Settings() {
         hours={venue.hours}
         onChanged={(p) => venue.setSettings({ ...venue.settings!, ordering_paused: p })}
       />
+      <CustomerMenuPanel settings={venue.settings} onSaved={venue.setSettings} />
       <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,360px),1fr))] items-start gap-5.5">
         <HoursPanel hours={venue.hours} onSaved={venue.reload} />
         <OperationsPanel settings={venue.settings} onSaved={venue.setSettings} />
@@ -47,6 +48,31 @@ function useSaveSettings(onSaved: (s: VenueSettings) => void) {
     toast(message);
   }
   return { busy, save };
+}
+
+function CustomerMenuPanel({ settings, onSaved }: { settings: VenueSettings; onSaved: (s: VenueSettings) => void }) {
+  const { busy, save } = useSaveSettings(onSaved);
+  const live = settings.customer_menu_live;
+  return (
+    <Panel title="Customer menu">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="min-w-0 max-w-[60ch]">
+          <b className={live ? "text-ok" : "text-warn"}>{live ? "Showing on drinksorder.app" : "Hidden from customers"}</b>
+          <p className="m-0 mt-1 text-sm text-muted">
+            {live
+              ? "Anyone scanning the QR code sees the drinks menu."
+              : "Customers see \u201cTable ordering is being set up\u201d. Preview the real menu on your phone at drinksorder.app/?preview"}
+          </p>
+        </div>
+        <Switch
+          on={live}
+          disabled={busy}
+          label="Show the drinks menu to customers"
+          onChange={(on) => void save({ customer_menu_live: on }, on ? "The menu is now showing to customers" : "The menu is hidden from customers")}
+        />
+      </div>
+    </Panel>
+  );
 }
 
 function HoursPanel({ hours, onSaved }: { hours: OpeningHours[]; onSaved: () => Promise<void> }) {

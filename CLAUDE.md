@@ -76,6 +76,19 @@ architecture changes, and never ask for secrets in chat.
 - Problems are flagged with `staff_report_problem` / cleared with `staff_clear_problem`
   (migration 003). Refunds wait for the payments stage.
 
+## Customer pages (`src/pages/customer`)
+- `CustomerRoot` shows the "being set up" page unless `venue_settings.customer_menu_live`
+  (migration 004, switch in Venue settings) or this phone has `/?preview` (localStorage
+  `rs-preview`; `/?preview=off` clears it). `CustomerApp` is lazy-loaded.
+- Menu from `useCustomerMenu` (public reads, Realtime on drinks/variants/options/settings,
+  60-second poll). Basket in localStorage holds ids only; prices always come from
+  `src/lib/pricing.ts` `priceLine`, which the payment server code must reuse.
+- `src/lib/hours.ts` works in Europe/London and handles closing after midnight.
+- Confirm screen shows a "card payments are being set up" holding panel: this is where the
+  provider's Apple Pay / Google Pay / card step plugs in. No unpaid orders are created.
+- `/order/:token` tracking polls `get_order_tracking` every 8 seconds (anon can't
+  subscribe to orders).
+
 ## Design
 Prototypes in `design/` are the reference for look and behaviour. Brand: forest
 `#132A1F`, gold `#9C7840` (`#7A5C2C` for small text), ivory `#FBF4EA`. Fonts: Cormorant

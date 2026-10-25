@@ -54,6 +54,16 @@ architecture changes, and never ask for secrets in chat.
 - Staff log in with a staff ID mapped to `<staff_code>@staff.drinksorder.app`; bar iPads use
   the bar-only account `bar@staff.drinksorder.app` (`staff_profiles.is_device`).
 
+## Admin site (`src/pages/admin`)
+- Lazy-loaded at `/admin`. Owner and managers only (`isManagerRole`); bar accounts are shown
+  a "managers only" screen. Tables and Venue settings are owner-only, matching the RLS rules.
+- Multi-row saves go through `admin_save_drink`, `admin_reorder_categories` and
+  `admin_save_opening_hours` (migration 002). Single-field changes use direct updates.
+- Local end-to-end testing: PostgREST (official release binary) on the local test database
+  plus a small gateway that fakes `/auth/v1` password sign-in and proxies `/rest/v1`, with
+  `.env.local` pointing the app at it, driven by playwright-core using
+  `/opt/pw-browsers/chromium-1194/chrome-linux/chrome`.
+
 ## Design
 Prototypes in `design/` are the reference for look and behaviour. Brand: forest
 `#132A1F`, gold `#9C7840` (`#7A5C2C` for small text), ivory `#FBF4EA`. Fonts: Cormorant

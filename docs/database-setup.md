@@ -58,6 +58,16 @@ select staff_code, display_name, role from public.staff_profiles;
 You should see `gerwyn | Gerwyn | owner` and `bar | Bar iPad | bar`. Staff only ever type
 their staff ID (e.g. `gerwyn`) or the bar password; the email addresses are internal.
 
+## Database updates
+When a new file appears in `supabase/migrations/`, run it once in the SQL Editor the same
+way as step 1 (open it on GitHub, **Copy raw file**, paste into a **New query**, **Run**).
+Run them in date order. Each one is all-or-nothing.
+
+| File | What it adds | Run? |
+|---|---|---|
+| `20261025000001_initial_schema.sql` | Tables, security rules, bar actions | Done |
+| `20261025000002_admin_saves.sql` | One-step saving for drinks, category order and ordering hours (admin site) | **Needed for the admin site** |
+
 ## If something goes wrong
 - **An error in step 1:** nothing is half-done. A failed run is rolled back. Take a
   screenshot of the error message and send it over.

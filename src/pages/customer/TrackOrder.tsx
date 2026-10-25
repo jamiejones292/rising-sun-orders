@@ -139,7 +139,12 @@ export default function TrackOrder() {
       <Link to="/" className="flex min-h-13.5 items-center justify-center rounded bg-forest font-semibold text-ivory">
         Order more drinks
       </Link>
-      <p className="text-center text-sm text-muted">Need to change something? Speak to the bar team and quote your order number.</p>
+      <p className="text-center text-sm text-muted">
+        Need to change something? Speak to the bar team and quote your order number.{" "}
+        <Link to="/refunds" className="font-semibold text-gold-ink underline underline-offset-2">
+          Refund policy
+        </Link>
+      </p>
     </main>
   );
 }

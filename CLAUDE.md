@@ -96,6 +96,8 @@ architecture changes, and never ask for secrets in chat.
   `venue_settings.test_orders_until` is in the future (owner's 2-hour button), marks orders
   `payment_provider = 'test'`; `admin_delete_test_orders()` clears them. Test mode ignores
   ordering hours in the UI. Bar shows "TEST ORDER · NOT PAID".
+- `/refunds` (`src/pages/RefundPolicy.tsx`) is the agreed refund policy, linked from the confirm
+  screen (with the "empty tables can't usually be refunded" line) and the tracking page.
 - `/order/:token` tracking polls `get_order_tracking` every 8 seconds (anon can't
   subscribe to orders).
 

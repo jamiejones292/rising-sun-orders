@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { Route, Routes } from "react-router-dom";
 import CustomerRoot from "./pages/customer/CustomerRoot";
 import NotFound from "./pages/NotFound";
+import RefundPolicy from "./pages/RefundPolicy";
 
 // Staff and admin code only downloads when someone opens /staff or /admin,
 // keeping the customer pages quick to load on phones.
@@ -41,6 +42,7 @@ export default function App() {
           </Suspense>
         }
       />
+      <Route path="/refunds" element={<RefundPolicy />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

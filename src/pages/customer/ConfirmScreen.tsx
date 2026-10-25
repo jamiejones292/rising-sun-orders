@@ -35,7 +35,12 @@ export default function ConfirmScreen({
           {drinks} drink{drinks === 1 ? "" : "s"} · {formatPence(totalPence)}
         </p>
       </div>
-      <p className="-mt-1 text-center text-sm text-muted">Please check this matches the number on your table stand.</p>
+      <p className="-mt-1 text-center text-sm text-muted">
+        Please check this matches the number on your table stand. Orders sent to an empty table can't usually be refunded.{" "}
+        <a href="/refunds" target="_blank" rel="noopener" className="font-semibold text-gold-ink underline underline-offset-2">
+          Refund policy
+        </a>
+      </p>
 
       {onPlaceTestOrder ? (
         <div className="flex flex-col gap-3 rounded-md border-2 border-dashed border-gold bg-paper p-4.5">

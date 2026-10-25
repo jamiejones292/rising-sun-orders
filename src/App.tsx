@@ -1,12 +1,12 @@
 import { lazy, Suspense } from "react";
 import { Route, Routes } from "react-router-dom";
 import CustomerHome from "./pages/customer/CustomerHome";
-import StaffHome from "./pages/staff/StaffHome";
 import NotFound from "./pages/NotFound";
 
-// Admin code only downloads when someone opens /admin, keeping the customer
-// pages quick to load on phones.
+// Staff and admin code only downloads when someone opens /staff or /admin,
+// keeping the customer pages quick to load on phones.
 const AdminApp = lazy(() => import("./pages/admin/AdminApp"));
+const StaffApp = lazy(() => import("./pages/staff/StaffApp"));
 
 // The three areas of the app share one site:
 //   /        customers (opened by the table QR code)
@@ -16,7 +16,14 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<CustomerHome />} />
-      <Route path="/staff/*" element={<StaffHome />} />
+      <Route
+        path="/staff/*"
+        element={
+          <Suspense fallback={<div className="flex min-h-dvh items-center justify-center bg-forest-night text-gold-soft">Loading…</div>}>
+            <StaffApp />
+          </Suspense>
+        }
+      />
       <Route
         path="/admin/*"
         element={

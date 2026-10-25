@@ -18,3 +18,12 @@ export const supabase = createClient(url, publishableKey, {
     autoRefreshToken: true,
   },
 });
+
+// A second, short-lived connection for a manager to step into the bar screen's
+// admin section without signing the bar iPad itself out. Nothing is stored:
+// closing or locking the panel forgets it.
+export function createElevatedClient() {
+  return createClient(url!, publishableKey!, {
+    auth: { persistSession: false, autoRefreshToken: false, storageKey: "rs-elevated" },
+  });
+}

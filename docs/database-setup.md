@@ -67,6 +67,29 @@ Run them in date order. Each one is all-or-nothing.
 |---|---|---|
 | `20261025000001_initial_schema.sql` | Tables, security rules, bar actions | Done |
 | `20261025000002_admin_saves.sql` | One-step saving for drinks, category order and ordering hours (admin site) | Done |
+| `20261026000003_order_problems.sql` | "Problem with this order" flags for the bar screen | **Needed for the bar screen** |
+
+## Trying the bar screen with a test order
+Real orders arrive once payments are set up. To see how the bar screen behaves before then,
+run this in a new SQL Editor query. It creates a pretend paid order for Table 12:
+
+```sql
+with o as (
+  insert into public.orders (table_id, table_label, total_pence, vat_pence, payment_status, paid_at, payment_method_label)
+  select id, label, 1560, 260, 'paid', now(), 'TEST' from public.venue_tables where label = '12'
+  returning id
+)
+insert into public.order_items (order_id, drink_name, variant_label, quantity, unit_price_pence, vat_rate, line_total_pence, no_ice, sort_order)
+select o.id, x.name, x.size, x.qty, x.price, 20, x.qty * x.price, x.no_ice, x.ord
+from o, (values ('Birra Moretti', 'Pint', 2, 620, false, 1), ('Diet Coke', 'Pint', 1, 320, true, 2))
+  as x(name, size, qty, price, no_ice, ord);
+```
+
+To remove all test orders afterwards:
+
+```sql
+delete from public.orders where payment_method_label = 'TEST';
+```
 
 ## If something goes wrong
 - **An error in step 1:** nothing is half-done. A failed run is rolled back. Take a

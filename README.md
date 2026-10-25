@@ -15,11 +15,11 @@ code, order and pay for drinks on their phone, and the order appears on the bar 
 | Stage | What | Status |
 |---|---|---|
 | 1 | Design prototypes saved in `design/` | Done |
-| 2 | Project setup: one site for `/`, `/staff`, `/admin` | Done (pages are placeholders) |
+| 2 | Project setup: one site for `/`, `/staff`, `/admin` | Done |
 | 3 | Database (Supabase): menu, tables 1–25, orders, staff, security rules | Done: applied to Supabase (London) |
 | 4 | Admin: drinks, prices, stock, categories, tables, QR code, settings | Done (staff, orders, refunds and reports follow later stages) |
 | 5 | Payments: Apple Pay, Google Pay, card (provider to be confirmed) | |
-| 6 | Bar screen: sign-in, live orders, tick-off, Order Fulfilled | |
+| 6 | Bar screen: sign-in, live orders, tick-off, Order Fulfilled, admin section | Done |
 | 7 | Customer menu, basket, checkout, tracking and receipts | |
 | 8 | Testing: payments, two iPads, Wi-Fi loss, timings | |
 | 9 | Go live on drinksorder.app | |

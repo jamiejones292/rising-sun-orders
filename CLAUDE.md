@@ -64,6 +64,18 @@ architecture changes, and never ask for secrets in chat.
   `.env.local` pointing the app at it, driven by playwright-core using
   `/opt/pw-browsers/chromium-1194/chrome-linux/chrome`.
 
+## Bar screen (`src/pages/staff`)
+- Lazy-loaded at `/staff`. Bar password signs in to `bar@staff.drinksorder.app` and the
+  session persists. Orders load from `useBarOrders`: Supabase Realtime on orders,
+  order_items and venue_settings, plus a 15-second poll and reload on wake/online as the
+  safety net; "offline" banner if nothing has loaded for 45 seconds.
+- NEW marker: not opened on this iPad (localStorage) and still `fulfilment_status = new`.
+- The admin section signs a manager in on a separate, unsaved client
+  (`createElevatedClient`) so the bar session stays put; locks after 5 minutes. Bar password
+  changes use the bar session's own `auth.updateUser`, with `signOut({scope: "others"})`.
+- Problems are flagged with `staff_report_problem` / cleared with `staff_clear_problem`
+  (migration 003). Refunds wait for the payments stage.
+
 ## Design
 Prototypes in `design/` are the reference for look and behaviour. Brand: forest
 `#132A1F`, gold `#9C7840` (`#7A5C2C` for small text), ivory `#FBF4EA`. Fonts: Cormorant

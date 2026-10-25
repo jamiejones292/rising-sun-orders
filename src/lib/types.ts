@@ -103,3 +103,31 @@ export const UK_ALLERGENS = [
   "Soya",
   "Sulphites",
 ] as const;
+
+export type FulfilmentStatus = "new" | "preparing" | "ready" | "delivered" | "cancelled";
+
+export type BarOrderItem = {
+  id: string;
+  drink_name: string;
+  variant_label: string;
+  quantity: number;
+  no_ice: boolean;
+  ticked: boolean;
+  sort_order: number;
+  order_item_options: { option_label: string; group_name: string }[];
+  drinks: { contains_alcohol: boolean } | null;
+};
+
+export type BarOrder = {
+  id: string;
+  order_number: number;
+  table_label: string;
+  total_pence: number;
+  payment_method_label: string | null;
+  paid_at: string;
+  fulfilment_status: FulfilmentStatus;
+  delivered_at: string | null;
+  problem_reason: string | null;
+  version: number;
+  order_items: BarOrderItem[];
+};

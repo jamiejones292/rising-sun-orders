@@ -66,7 +66,7 @@ Run them in date order. Each one is all-or-nothing.
 | File | What it adds | Run? |
 |---|---|---|
 | `20261025000001_initial_schema.sql` | Tables, security rules, bar actions | Done |
-| `20261025000002_admin_saves.sql` | One-step saving for drinks, category order and ordering hours (admin site) | **Needed for the admin site** |
+| `20261025000002_admin_saves.sql` | One-step saving for drinks, category order and ordering hours (admin site) | Done |
 
 ## If something goes wrong
 - **An error in step 1:** nothing is half-done. A failed run is rolled back. Take a

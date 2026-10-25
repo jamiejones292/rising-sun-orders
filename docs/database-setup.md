@@ -36,6 +36,28 @@ You should see **10 categories, 29 drinks, 57 sizes, 25 tables**.
 
 You can also click **Table Editor** in the sidebar to browse the drinks.
 
+## Step 4: Create the staff logins
+1. **Authentication → Sign In / Providers**: turn **off** "Allow new users to sign up" and
+   save (leave Email sign-in on).
+2. **Authentication → Users → Add user → Create new user**, ticking **Auto Confirm User**:
+   - `gerwyn@staff.drinksorder.app` with Gerwyn's own password (at least 10 characters)
+   - `bar@staff.drinksorder.app` with the bar iPad password
+3. In a new SQL Editor query, run:
+
+```sql
+insert into public.staff_profiles (user_id, staff_code, display_name, role, is_device)
+select id, 'gerwyn', 'Gerwyn', 'owner'::public.staff_role, false
+from auth.users where email = 'gerwyn@staff.drinksorder.app'
+union all
+select id, 'bar', 'Bar iPad', 'bar'::public.staff_role, true
+from auth.users where email = 'bar@staff.drinksorder.app';
+
+select staff_code, display_name, role from public.staff_profiles;
+```
+
+You should see `gerwyn | Gerwyn | owner` and `bar | Bar iPad | bar`. Staff only ever type
+their staff ID (e.g. `gerwyn`) or the bar password; the email addresses are internal.
+
 ## If something goes wrong
 - **An error in step 1:** nothing is half-done. A failed run is rolled back. Take a
   screenshot of the error message and send it over.

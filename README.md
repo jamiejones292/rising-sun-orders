@@ -15,7 +15,7 @@ code, order and pay for drinks on their phone, and the order appears on the bar 
 |---|---|---|
 | 1 | Design prototypes saved in `design/` | Done |
 | 2 | Project setup: one site for `/`, `/staff`, `/admin` | Done (pages are placeholders) |
-| 3 | Database (Supabase): menu, tables 1–25, orders, staff, security rules | Written and tested; apply with `docs/database-setup.md` |
+| 3 | Database (Supabase): menu, tables 1–25, orders, staff, security rules | Done: applied to Supabase (London) |
 | 4 | Admin: drinks, prices, stock, tables, staff, settings | |
 | 5 | Payments: Apple Pay, Google Pay, card (provider to be confirmed) | |
 | 6 | Bar screen: sign-in, live orders, tick-off, Order Fulfilled | |

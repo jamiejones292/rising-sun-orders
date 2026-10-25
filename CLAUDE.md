@@ -39,6 +39,21 @@ architecture changes, and never ask for secrets in chat.
 - Still open: tracking stages (proposed Received → Preparing → Delivered), whether bar
   staff can toggle stock, policy for orders missing from the iPad, minimum order.
 
+## Database
+- Supabase project `faioegqaamrvbfzurzun` (London). URL and publishable key are public and
+  live in `netlify.toml`; the secret key only ever goes in Netlify environment variables.
+- Schema changes are new files in `supabase/migrations/` (never edit an applied one), wrapped
+  in `begin; ... commit;`. The owner applies them in the Supabase SQL Editor
+  (`docs/database-setup.md`). This build environment cannot reach supabase.co, so test SQL
+  against a local PostgreSQL with a stub of Supabase's roles, `auth` schema and
+  `supabase_realtime` publication before handing it over.
+- Bar changes go through SECURITY DEFINER functions (`staff_set_item_ticked`,
+  `staff_fulfil_order`, `staff_reopen_order`, `staff_change_table`, `set_ordering_paused`,
+  `set_drink_available`, `set_variant_available`); customers track via
+  `get_order_tracking(token)`. Orders, payments and refunds are inserted by the server only.
+- Staff log in with a staff ID mapped to `<staff_code>@staff.drinksorder.app`; bar iPads use
+  the bar-only account `bar@staff.drinksorder.app` (`staff_profiles.is_device`).
+
 ## Design
 Prototypes in `design/` are the reference for look and behaviour. Brand: forest
 `#132A1F`, gold `#9C7840` (`#7A5C2C` for small text), ivory `#FBF4EA`. Fonts: Cormorant

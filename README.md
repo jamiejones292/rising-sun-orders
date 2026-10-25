@@ -15,7 +15,7 @@ code, order and pay for drinks on their phone, and the order appears on the bar 
 |---|---|---|
 | 1 | Design prototypes saved in `design/` | Done |
 | 2 | Project setup: one site for `/`, `/staff`, `/admin` | Done (pages are placeholders) |
-| 3 | Database (Supabase): menu, tables 1–25, orders, staff, security rules | Next |
+| 3 | Database (Supabase): menu, tables 1–25, orders, staff, security rules | Written and tested; apply with `docs/database-setup.md` |
 | 4 | Admin: drinks, prices, stock, tables, staff, settings | |
 | 5 | Payments: Apple Pay, Google Pay, card (provider to be confirmed) | |
 | 6 | Bar screen: sign-in, live orders, tick-off, Order Fulfilled | |
@@ -42,6 +42,9 @@ src/
   components/        Shared pieces (wordmark, notices)
   lib/               Helpers (money in pence, VAT)
 netlify/functions/   Server code (payments, staff actions)
+supabase/migrations/ Database structure and security rules (run in order)
+supabase/seed.sql    Tables 1–25, settings and an example menu
+docs/                Step-by-step guides
 netlify.toml         Netlify build, routing and security headers
 ```
 

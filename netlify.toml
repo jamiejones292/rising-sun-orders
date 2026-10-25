@@ -8,6 +8,11 @@
 
 [build.environment]
   NODE_VERSION = "22"
+  # Public database address and publishable key: safe to be visible, the
+  # database's security rules protect the data. SECRET keys never go here;
+  # they are added in Netlify's Environment variables screen.
+  VITE_SUPABASE_URL = "https://faioegqaamrvbfzurzun.supabase.co"
+  VITE_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_u_5rOP4_gc1jvfTAhNNM4g_IEorneaP"
 
 # One app serves every page (/, /staff, /admin), so send all paths to it.
 # Files that exist (logo, scripts) and /.netlify/functions/* are served first.

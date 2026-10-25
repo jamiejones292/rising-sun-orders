@@ -36,6 +36,11 @@ architecture changes, and never ask for secrets in chat.
 - Small admin section inside the bar screen needs staff ID + password (pause ordering,
   stock, refunds, change bar password, sign iPad out); auto-locks after 5 minutes.
   Owner staff ID: `gerwyn` (sets own password, minimum 10 characters).
+- No location/geofence check on ordering (owner's decision): paying up front is the
+  safeguard; staff flag "Can't find the table". Per-table codes are the fallback if
+  remote prank orders ever become a problem.
+- QR: plain static code to `https://drinksorder.app` (files in `design/qr/`); no paid
+  dynamic QR service, since the domain itself is the redirect point.
 - Still open: tracking stages (proposed Received → Preparing → Delivered), whether bar
   staff can toggle stock, policy for orders missing from the iPad, minimum order.
 

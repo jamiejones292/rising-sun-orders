@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Rising Sun Bar Screen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Figtree:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: bar iPad. Deep-green header with counts and controls; ivory order cards on green, oldest first; tapping a card opens a full-screen itemised tick-list.
+   Single theme by choice: high-contrast ivory-on-green reads well under bar lighting, day or night. */
+:root{
+  --ground:#0F231A; --ground-2:#17322A; --head:#132A1F;
+  --card:#FBF4EA; --card-2:#F1E6D2; --line:#DCCBAA;
+  --ink:#1C211D; --muted:#5F5D52; --ivory:#FBF4EA; --gold:#B8914D; --gold-soft:#E9DBBF;
+  --ok:#1F7A47; --ok-soft:#DDF0E3; --amber:#C07A00; --amber-soft:#FCEFD2; --red:#B3261E; --red-soft:#FBE3DF;
+  --display:"Cormorant Garamond", Georgia, serif;
+  --sans:"Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{background:var(--ground);color:var(--ivory)}
+body{font-family:var(--sans);font-size:16px;line-height:1.35;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums lining-nums}
+.gut{padding-left:max(18px, env(safe-area-inset-left, 0px));padding-right:max(18px, env(safe-area-inset-right, 0px))}
+
+/* Header */
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top, 0px);z-index:10;background:var(--head)}
+header{position:sticky;top:env(safe-area-inset-top, 0px);z-index:8;background:var(--head);border-bottom:1px solid rgba(233,219,191,.18)}
+.hrow{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;padding-block:12px}
+.brand{font-family:var(--display);font-size:1.45rem;font-weight:700;line-height:1;color:var(--ivory)}
+.brand small{display:block;font-family:var(--sans);font-size:.7rem;letter-spacing:.24em;text-transform:uppercase;color:var(--gold-soft);font-weight:600;margin-top:4px}
+.clock{font-size:1.5rem;font-weight:800;color:var(--ivory)}
+.conn{display:inline-flex;align-items:center;gap:8px;font-size:.88rem;font-weight:700;color:#9FD9B4}
+.conn i{width:10px;height:10px;border-radius:50%;background:#4CC27A;box-shadow:0 0 0 4px rgba(76,194,122,.2)}
+.conn.down{color:#FFB4A9}.conn.down i{background:#FF6B57;box-shadow:0 0 0 4px rgba(255,107,87,.25)}
+.spacer{flex:1}
+.hbtn{min-height:46px;padding:0 16px;border-radius:6px;border:1.5px solid rgba(233,219,191,.45);color:var(--ivory);font-weight:700;font-size:.92rem;display:inline-flex;align-items:center;gap:8px}
+.hbtn.on{background:var(--gold-soft);color:var(--head);border-color:var(--gold-soft)}
+.hbtn.pause{border-color:#FFB4A9;color:#FFD2CB}
+.hbtn.pause.paused{background:var(--red);border-color:var(--red);color:#fff}
+.tabs{display:flex;gap:6px;padding-block:0 12px}
+.tab{min-height:44px;padding:0 18px;border-radius:999px;font-weight:700;color:var(--gold-soft);border:1.5px solid rgba(233,219,191,.3)}
+.tab[aria-selected="true"]{background:var(--ivory);color:var(--head);border-color:var(--ivory)}
+.tab b{font-size:1.05rem;margin-left:4px}
+
+.banner{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding-block:12px;font-weight:700}
+.banner.paused{background:var(--red);color:#fff}
+.banner.down{background:#5A1712;color:#FFD2CB}
+.banner span{font-weight:500;opacity:.9}
+
+/* Board */
+.summary{display:flex;flex-wrap:wrap;gap:8px 22px;align-items:baseline;padding-block:18px 6px;color:var(--gold-soft)}
+.summary b{color:var(--ivory);font-size:1.6rem;font-weight:800}
+.board{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:16px;padding-block:12px 120px;align-items:start}
+.card{display:flex;flex-direction:column;text-align:left;background:var(--card);color:var(--ink);border-radius:10px;overflow:hidden;box-shadow:0 6px 18px rgba(0,0,0,.25);border:3px solid transparent;width:100%}
+.card:active{transform:scale(.99)}
+.card.new{border-color:var(--gold);animation:glow 1.6s ease-in-out infinite}
+@keyframes glow{50%{box-shadow:0 0 0 6px rgba(184,145,77,.35),0 6px 18px rgba(0,0,0,.25)}}
+.stripe{height:10px;background:var(--ok)}
+.card.amber .stripe{background:var(--amber)} .card.red .stripe{background:var(--red)}
+.ctop{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:14px 16px 8px}
+.tlabel{font-size:.72rem;font-weight:800;letter-spacing:.16em;color:var(--muted)}
+.tnum{font-size:3.4rem;font-weight:800;line-height:.95;color:var(--head)}
+.wait{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.timer{font-weight:800;font-size:1.05rem;padding:4px 10px;border-radius:999px;background:var(--ok-soft);color:var(--ok);white-space:nowrap}
+.card.amber .timer{background:var(--amber-soft);color:#8A5600} .card.red .timer{background:var(--red-soft);color:var(--red)}
+.state{font-size:.72rem;font-weight:800;letter-spacing:.1em;padding:4px 8px;border-radius:4px;background:var(--card-2);color:var(--muted)}
+.state.new{background:var(--gold);color:#fff}
+.state.prog{background:var(--head);color:var(--ivory)}
+.cmeta{padding:0 16px 10px;font-size:.85rem;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap}
+.clines{list-style:none;margin:0;padding:10px 16px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:7px}
+.clines li{display:grid;grid-template-columns:44px 1fr;gap:6px;font-size:1rem}
+.clines li.done{color:var(--ok)}
+.clines li.done .q::after{content:" ✓"}
+.clines .q{font-weight:800;white-space:nowrap}
+.clines .n{font-weight:600;min-width:0}
+.clines .o{display:block;font-weight:400;font-size:.85rem;color:var(--muted)}
+.noice{display:inline-block;background:#1C211D;color:#fff;font-size:.72rem;font-weight:800;letter-spacing:.08em;padding:2px 7px;border-radius:3px;margin-left:4px;vertical-align:1px}
+.cfoot{display:flex;align-items:center;gap:10px;padding:10px 16px 14px;border-top:1px solid var(--line);font-size:.85rem;font-weight:700;color:var(--muted)}
+.bar{flex:1;height:8px;border-radius:4px;background:var(--card-2);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ok);border-radius:4px}
+.empty{grid-column:1/-1;text-align:center;padding:70px 20px;color:var(--gold-soft)}
+.empty h2{font-family:var(--display);font-size:2.2rem;color:var(--ivory);margin:0 0 6px}
+
+/* Detail */
+.detail{min-height:100vh;background:var(--card);color:var(--ink);display:flex;flex-direction:column}
+.dhead{background:var(--head);color:var(--ivory);padding-block:14px;display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px}
+.back{min-height:50px;padding:0 18px 0 12px;border-radius:6px;border:1.5px solid rgba(233,219,191,.45);font-weight:700;display:inline-flex;align-items:center;gap:6px}
+.dtable{display:flex;align-items:baseline;gap:12px}
+.dtable small{font-size:.8rem;font-weight:800;letter-spacing:.16em;color:var(--gold-soft)}
+.dtable b{font-size:3rem;font-weight:800;line-height:1}
+.dinfo{display:flex;flex-direction:column;gap:2px;font-size:.92rem;color:var(--gold-soft)}
+.dinfo b{color:var(--ivory)}
+.dbody{flex:1;padding-block:20px 160px;display:flex;flex-direction:column;gap:14px;max-width:900px;width:100%;margin:0 auto}
+.hint{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;color:var(--muted);font-size:.95rem}
+.idchk{display:inline-flex;gap:8px;align-items:center;background:var(--amber-soft);color:#7A4B00;font-weight:700;border-radius:6px;padding:8px 12px;font-size:.88rem}
+.items{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.item{display:grid;grid-template-columns:56px 64px minmax(0,1fr);align-items:center;gap:14px;width:100%;text-align:left;background:#fff;border:2px solid var(--line);border-radius:10px;padding:16px;min-height:88px;transition:background .15s,border-color .15s}
+.box{width:52px;height:52px;border-radius:8px;border:3px solid #9C9480;display:grid;place-items:center;background:#fff}
+.box svg{width:30px;height:30px;opacity:0}
+.iq{font-size:2rem;font-weight:800;color:var(--head)}
+.iname{font-size:1.3rem;font-weight:700;color:var(--head)}
+.iopt{display:block;font-size:1rem;color:var(--muted);margin-top:3px}
+.item .noice{font-size:.85rem;padding:3px 9px}
+.item[aria-checked="true"]{background:var(--ok);border-color:var(--ok)}
+.item[aria-checked="true"] .box{background:#fff;border-color:#fff}
+.item[aria-checked="true"] .box svg{opacity:1}
+.item[aria-checked="true"] .iq,.item[aria-checked="true"] .iname{color:#fff}
+.item[aria-checked="true"] .iopt{color:#D7F0DF}
+.item[aria-checked="true"] .noice{background:#fff;color:var(--ok)}
+.dtotal{display:flex;justify-content:space-between;font-size:1rem;color:var(--muted);padding:6px 4px;border-top:1px solid var(--line)}
+.dtotal b{color:var(--head)}
+.dfoot{position:fixed;left:0;right:0;bottom:0;z-index:7;background:var(--card);border-top:2px solid var(--line);padding-top:14px;padding-bottom:calc(16px + env(safe-area-inset-bottom, 0px))}
+.dfoot-in{max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+.prog{display:flex;align-items:center;gap:12px;font-weight:800;color:var(--head)}
+.prog .bar{height:12px;border-radius:6px}
+.fulfil{min-height:72px;border-radius:10px;background:var(--ok);color:#fff;font-size:1.4rem;font-weight:800;letter-spacing:.06em;display:flex;align-items:center;justify-content:center;gap:12px;width:100%;box-shadow:0 6px 16px rgba(31,122,71,.35)}
+.fulfil svg{width:30px;height:30px}
+.waiting{min-height:72px;border-radius:10px;border:2px dashed var(--line);color:var(--muted);font-weight:700;display:flex;align-items:center;justify-content:center;text-align:center;padding:0 16px}
+.dsmall{display:flex;flex-wrap:wrap;gap:8px 18px;justify-content:center}
+.dsmall button{color:var(--muted);font-weight:600;text-decoration:underline;text-underline-offset:3px;padding:6px}
+.problem{border:2px solid var(--red);background:var(--red-soft);color:var(--red);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px;font-weight:600}
+.problem .row{display:flex;flex-wrap:wrap;gap:8px}
+.pbtn{min-height:46px;padding:0 14px;border-radius:6px;background:#fff;border:1.5px solid var(--red);color:var(--red);font-weight:700}
+
+/* Completed */
+.done-list{display:flex;flex-direction:column;gap:10px;padding-block:16px 120px}
+.drow{display:grid;grid-template-columns:90px 90px minmax(0,1fr) auto;gap:14px;align-items:center;background:var(--ground-2);border:1px solid rgba(233,219,191,.15);border-radius:8px;padding:14px 16px;color:var(--gold-soft)}
+.drow b{color:var(--ivory);font-size:1.2rem}
+.drow .what{min-width:0;color:var(--ivory)}
+.reopen{min-height:44px;padding:0 14px;border-radius:6px;border:1.5px solid rgba(233,219,191,.4);font-weight:700;color:var(--ivory)}
+@media (max-width:620px){.drow{grid-template-columns:1fr 1fr}.drow .what{grid-column:1/-1}}
+
+/* Alert + toast + demo */
+.alert{position:fixed;top:calc(env(safe-area-inset-top, 0px) + 14px);left:50%;transform:translateX(-50%);z-index:30;background:var(--gold);color:#fff;border-radius:10px;padding:16px 22px;display:flex;align-items:center;gap:16px;box-shadow:0 12px 34px rgba(0,0,0,.45);max-width:calc(100vw - 32px);text-align:left}
+.alert b{font-size:1.6rem;font-weight:800;letter-spacing:.02em}
+.alert span{font-size:.95rem}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom, 0px));transform:translateX(-50%);z-index:40;background:#fff;color:var(--ink);border-radius:8px;padding:14px 16px 14px 18px;display:flex;align-items:center;gap:16px;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,.4);max-width:calc(100vw - 32px)}
+.toast button{min-height:40px;padding:0 14px;border-radius:6px;background:var(--head);color:var(--ivory);font-weight:700}
+.demo{position:fixed;right:max(14px, calc(env(safe-area-inset-right, 0px) + 14px));bottom:calc(14px + env(safe-area-inset-bottom, 0px));z-index:20;display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.demo-panel{background:var(--card);color:var(--ink);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px;width:250px;box-shadow:0 10px 30px rgba(0,0,0,.4);font-size:.85rem}
+.demo-panel button{min-height:40px;border-radius:6px;border:1.5px solid var(--line);background:#fff;font-weight:700;color:var(--head)}
+.demo-btn{background:var(--gold);color:#fff;font-weight:800;font-size:.75rem;letter-spacing:.08em;padding:8px 14px;border-radius:999px;box-shadow:0 4px 14px rgba(0,0,0,.3)}
+/* Sign-in: until the bar password is entered only the login card shows */
+.login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding-block:32px;background:var(--ground)}
+body.in .login{display:none}
+body:not(.in) #header,body:not(.in) #list-view,body:not(.in) .demo,body:not(.in) #alert,body:not(.in) .banner,body:not(.in) #detail{display:none!important}
+.login-card{width:min(100%,420px);background:var(--card);color:var(--ink);border-radius:12px;padding:28px 24px;display:flex;flex-direction:column;gap:14px;box-shadow:0 20px 50px rgba(0,0,0,.4)}
+.login-card img{width:min(100%,240px);height:auto;margin:0 auto;display:block}
+.login-card h1{font-family:var(--display);font-size:2rem;color:var(--head);margin:0;text-align:center}
+.lfield{display:flex;flex-direction:column;gap:6px;font-weight:700;color:var(--head);font-size:.9rem;min-width:0}
+.lfield input{height:54px;border:2px solid var(--line);border-radius:8px;background:#fff;padding:0 14px;font:inherit;font-size:1.15rem;color:var(--ink);width:100%;min-width:0}
+.pw{display:flex;gap:8px}
+.showpw{min-width:70px;border:2px solid var(--line);border-radius:8px;background:#fff;font-weight:700;color:var(--head)}
+.lck{display:flex;gap:10px;align-items:center;font-size:.95rem;color:var(--ink)}
+.lck input{width:22px;height:22px;accent-color:var(--ok);flex:none}
+.lerr{margin:0;color:var(--red);font-weight:600;font-size:.92rem}
+.lbtn{min-height:58px;border-radius:8px;background:var(--head);color:var(--ivory);font-weight:800;font-size:1.1rem;letter-spacing:.03em}
+.lhint{margin:0;text-align:center;font-size:.82rem;color:var(--muted)}
+
+/* Admin section */
+.hbtn svg{width:18px;height:18px}
+.modal-wrap{position:fixed;inset:0;z-index:35;background:rgba(5,14,10,.72);display:flex;align-items:center;justify-content:center;padding-block:calc(16px + env(safe-area-inset-top, 0px)) calc(16px + env(safe-area-inset-bottom, 0px));padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+.modal{width:min(100%,440px);max-height:100%;overflow-y:auto;background:var(--card);color:var(--ink);border-radius:12px;padding:22px;display:flex;flex-direction:column;gap:14px}
+.modal.wide{width:min(100%,800px)}
+.mh{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.mh h2{font-family:var(--display);font-size:2rem;color:var(--head);margin:0}
+.eyebrow{font-size:.85rem;color:var(--muted)}
+.msub{margin:0;color:var(--muted);font-size:.92rem}
+.x{width:44px;height:44px;border-radius:50%;border:2px solid var(--line);color:var(--muted);flex:none}
+.lockbtn{min-height:46px;padding:0 16px;border-radius:8px;background:var(--head);color:var(--ivory);font-weight:800;flex:none}
+.ap-body{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:14px;align-items:start}
+.ap-sec{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.ap-sec h3{margin:0;font-size:1.05rem;color:var(--head)}
+.ap-sec small{color:var(--muted);font-size:.82rem}
+.ap-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 0;border-top:1px solid var(--card-2)}
+.ap-row > span{min-width:0}
+.apbtn{min-height:48px;padding:0 16px;border-radius:8px;background:var(--ok);color:#fff;font-weight:800;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;text-align:center}
+.apbtn.danger{background:var(--red)}
+.apbtn.ghost{background:#fff;color:var(--head);border:2px solid var(--line)}
+.apbtn.sm{min-height:40px;padding:0 12px;font-size:.88rem}
+.ap-confirm{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.tagref{font-size:.75rem;font-weight:800;color:var(--red);background:var(--red-soft);padding:3px 8px;border-radius:4px;white-space:nowrap}
+.ap-foot{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:10px}
+.sw{position:relative;width:56px;height:32px;border-radius:16px;background:#C9BFA9;flex:none}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .15s}
+.sw[aria-checked="true"]{background:var(--ok)}
+.sw[aria-checked="true"]::after{transform:translateX(24px)}
+.pwgrid{display:flex;flex-direction:column;gap:10px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+
+<section class="login gut" id="login">
+  <form class="login-card" id="login-form" novalidate>
+    <img src="../logo.jpg" alt="The Rising Sun Inn, Abersychan" width="900" height="842">
+    <h1>Bar screen</h1>
+    <label class="lfield" for="bar-pw"><span>Bar password</span>
+      <span class="pw"><input id="bar-pw" type="password" autocomplete="current-password"><button type="button" class="showpw" data-show="bar-pw">Show</button></span></label>
+    <label class="lck" for="remember"><input type="checkbox" id="remember" checked> Keep this iPad signed in</label>
+    <p class="lerr" id="login-err" hidden></p>
+    <button class="lbtn">Open bar screen</button>
+    <p class="lhint">Prototype password: <b>risingsun</b></p>
+  </form>
+</section>
+
+<header id="header">
+  <div class="hrow gut">
+    <div class="brand">The Rising Sun Inn<small>Bar orders</small></div>
+    <span class="clock num" id="clock">19:48</span>
+    <span class="conn" id="conn"><i></i><span>Live</span></span>
+    <span class="spacer"></span>
+    <button class="hbtn" id="sound" aria-pressed="false">Enable sound</button>
+    <button class="hbtn" id="admin-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Admin</button>
+  </div>
+  <div class="tabs gut" role="tablist">
+    <button class="tab" role="tab" id="tab-open" aria-selected="true">Waiting <b class="num" id="n-open">0</b></button>
+    <button class="tab" role="tab" id="tab-done" aria-selected="false">Fulfilled today <b class="num" id="n-done">0</b></button>
+  </div>
+</header>
+<div class="banner paused gut" id="b-paused" hidden>ONLINE ORDERING PAUSED <span>Customers can browse but can't pay. Finish the orders below, then resume.</span></div>
+<div class="banner down gut" id="b-down" hidden>CONNECTION LOST. RECONNECTING… <span>No orders are lost. New paid orders will appear as soon as the iPad is back online. If this lasts more than 2 minutes, use the paper backup sheet.</span></div>
+
+<main id="list-view">
+  <div class="summary gut" id="summary"></div>
+  <div class="board gut" id="board"></div>
+  <div class="done-list gut" id="done" hidden></div>
+</main>
+
+<section class="detail" id="detail" hidden aria-labelledby="d-title"></section>
+
+<div class="modal-wrap" id="adm-login" hidden>
+  <form class="modal" id="adm-form" role="dialog" aria-modal="true" aria-labelledby="adm-t" novalidate>
+    <div class="mh"><h2 id="adm-t">Admin sign-in</h2><button type="button" class="x" data-close="adm-login" aria-label="Close">✕</button></div>
+    <p class="msub">For managers and the owner. Bar staff don't need this to run orders.</p>
+    <label class="lfield" for="adm-id"><span>Staff ID</span><input id="adm-id" autocomplete="username" autocapitalize="none" spellcheck="false"></label>
+    <label class="lfield" for="adm-pw"><span>Password</span><span class="pw"><input id="adm-pw" type="password" autocomplete="current-password"><button type="button" class="showpw" data-show="adm-pw">Show</button></span></label>
+    <p class="lerr" id="adm-err" hidden></p>
+    <button class="lbtn">Sign in to admin</button>
+    <p class="lhint">Use your own staff ID and password.</p>
+  </form>
+</div>
+<div class="modal-wrap" id="adm-panel" hidden>
+  <div class="modal wide" role="dialog" aria-modal="true" aria-labelledby="ap-t">
+    <div class="mh"><div><span class="eyebrow">Signed in as <b id="ap-who">Gerwyn · Owner</b></span><h2 id="ap-t">Admin</h2></div><button type="button" class="lockbtn" id="ap-lock">Lock admin</button></div>
+    <p class="msub num" id="ap-timer">Locks automatically after 5 minutes without a tap.</p>
+    <div class="ap-body" id="ap-body"></div>
+  </div>
+</div>
+
+<div class="alert" id="alert" role="alert" hidden></div>
+<div class="toast" id="toast" role="status" hidden><span id="toast-msg"></span><button id="toast-undo">Undo</button></div>
+<div class="demo">
+  <div class="demo-panel" id="demo-panel" hidden>
+    <b>Prototype controls</b>
+    <span style="color:var(--muted)">Example orders only. In the live app paid orders arrive here by themselves.</span>
+    <button id="d-new">Simulate a new paid order</button>
+    <button id="d-conn">Simulate losing Wi-Fi</button>
+  </div>
+  <button class="demo-btn" id="demo-btn" aria-expanded="false">PROTOTYPE</button>
+</div>
+
+<script>
+// ---------- Example orders ----------
+const now=()=>Date.now(), MIN=60000;
+const L=(qty,name,opt,noIce=false,alc=true)=>({qty,name,opt,noIce,alc,done:false});
+let ORDERS=[
+  {no:1046,table:"12",at:now()-11.5*MIN,total:2110,method:"Apple Pay",seen:true,lines:[L(2,"Birra Moretti","Pint"),L(1,"Sauvignon Blanc","175ml glass"),L(1,"Diet Coke","Pint",true,false)]},
+  {no:1047,table:"3",at:now()-7.2*MIN,total:1700,method:"Google Pay",seen:true,lines:[L(1,"Gordon's Gin","Double + Fever-Tree Indian tonic",true),L(1,"Tiny Rebel Cwtch","Pint"),L(1,"J2O Orange & Passion Fruit","275ml bottle",false,false)]},
+  {no:1048,table:"19",at:now()-4.1*MIN,total:3280,method:"Card",seen:true,lines:[L(4,"Carling","Pint"),L(2,"Brains SA","Pint")]},
+  {no:1049,table:"7",at:now()-0.8*MIN,total:1990,method:"Apple Pay",seen:false,lines:[L(1,"Espresso Martini","Cocktail"),L(1,"Aperol Spritz","Cocktail"),L(1,"Coca-Cola","Half pint",true,false)]}
+];
+ORDERS[2].lines[0].done=true;
+let DONE=[
+  {no:1045,table:"14",at:now()-26*MIN,fin:now()-19*MIN,total:640,lines:[L(2,"Diet Coke","Pint",false,false)]},
+  {no:1044,table:"9",at:now()-40*MIN,fin:now()-33*MIN,total:880,lines:[L(1,"Diet Coke","Pint",false,false),L(1,"Carling","Pint")]},
+  {no:1043,table:"1",at:now()-51*MIN,fin:now()-45*MIN,total:560,lines:[L(1,"Carling","Pint")]}];
+const NEXT=[
+  {table:"22",total:1360,method:"Apple Pay",lines:[L(1,"Penderyn Madeira","Single · With ice"),L(2,"Guinness 0.0","440ml",false,false)]},
+  {table:"5",total:1290,method:"Card",lines:[L(1,"Merlot","250ml glass"),L(1,"Lemonade","Pint",true,false)]},
+  {table:"16",total:2480,method:"Google Pay",lines:[L(4,"Birra Moretti","Pint")]}];
+let nextNo=1050, AMBER=5, RED=10;
+
+// ---------- Helpers ----------
+const $=s=>document.querySelector(s);
+const gbp=p=>"£"+(p/100).toFixed(2);
+const hm=t=>new Date(t).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
+const mins=o=>Math.floor((now()-o.at)/MIN);
+const level=o=>mins(o)>=RED?"red":mins(o)>=AMBER?"amber":"green";
+const waitText=o=>{const m=mins(o);return m<1?"Just now":m+" min"};
+const drinks=o=>o.lines.reduce((s,l)=>s+l.qty,0);
+const ticked=o=>o.lines.filter(l=>l.done).length;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const NOICE='<span class="noice">NO ICE</span>';
+const CHECK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ok)"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+let tab="open", openNo=null;
+
+// ---------- Board ----------
+function renderBoard(){
+  const list=[...ORDERS].sort((a,b)=>a.at-b.at);
+  $("#n-open").textContent=list.length; $("#n-done").textContent=DONE.length;
+  const oldest=list[0];
+  $("#summary").innerHTML=list.length?`<span><b class="num">${list.length}</b> order${list.length===1?"":"s"} waiting</span><span><b class="num">${list.reduce((s,o)=>s+drinks(o),0)}</b> drinks to pour</span><span>Oldest: <b class="num">${waitText(oldest)}</b> · Table ${oldest.table}</span>`:"";
+  $("#board").innerHTML=list.length?list.map(o=>{
+    const t=ticked(o),n=o.lines.length,state=!o.seen?'<span class="state new">NEW</span>':t?'<span class="state prog">IN PROGRESS</span>':'<span class="state">NOT STARTED</span>';
+    return `<button class="card ${level(o)} ${o.seen?"":"new"}" data-open="${o.no}" aria-label="Table ${o.table}, order ${o.no}, waiting ${waitText(o)}. Open order.">
+      <div class="stripe"></div>
+      <div class="ctop"><div><div class="tlabel">TABLE</div><div class="tnum num">${o.table}</div></div>
+        <div class="wait"><span class="timer num">${waitText(o)}</span>${state}</div></div>
+      <div class="cmeta num"><span>#${o.no}</span><span>Received ${hm(o.at)}</span><span>${drinks(o)} drink${drinks(o)===1?"":"s"}</span></div>
+      <ul class="clines">${o.lines.map(l=>`<li class="${l.done?"done":""}"><span class="q num">${l.qty}×</span><span class="n">${esc(l.name)}${l.noIce?NOICE:""}<span class="o">${esc(l.opt)}</span></span></li>`).join("")}</ul>
+      <div class="cfoot"><span class="bar"><i style="width:${t/n*100}%"></i></span><span class="num">${t} of ${n} ticked</span></div>
+    </button>`}).join(""):`<div class="empty"><h2>All caught up</h2><p>New paid orders will appear here automatically, with a sound if it's switched on.</p></div>`;
+  $("#done").innerHTML=DONE.length?DONE.map(o=>`<div class="drow"><span>Table<br><b class="num">${o.table}</b></span><span class="num">#${o.no}<br>${hm(o.fin)}</span>
+    <span class="what">${o.lines.map(l=>`${l.qty}× ${esc(l.name)}`).join(", ")}</span><button class="reopen" data-reopen="${o.no}">Reopen</button></div>`).join(""):`<div class="empty"><h2>Nothing fulfilled yet</h2></div>`;
+}
+$("#board").onclick=e=>{const c=e.target.closest("[data-open]");if(c)openOrder(+c.dataset.open)};
+$("#done").onclick=e=>{const b=e.target.closest("[data-reopen]");if(!b)return;const i=DONE.findIndex(o=>o.no===+b.dataset.reopen);const o=DONE.splice(i,1)[0];
+  o.lines.forEach(l=>l.done=true);o.seen=true;delete o.fin;ORDERS.push(o);setTab("open");toast(`Order #${o.no} reopened`);};
+function setTab(t){tab=t;$("#tab-open").setAttribute("aria-selected",t==="open");$("#tab-done").setAttribute("aria-selected",t==="done");
+  $("#board").hidden=t!=="open";$("#summary").hidden=t!=="open";$("#done").hidden=t!=="done";renderBoard()}
+$("#tab-open").onclick=()=>setTab("open");$("#tab-done").onclick=()=>setTab("done");
+
+// ---------- Itemised order ----------
+let problemOpen=false;
+function openOrder(no){
+  const o=ORDERS.find(x=>x.no===no);if(!o)return;
+  o.seen=true;openNo=no;problemOpen=false;renderDetail();
+  $("#list-view").hidden=true;$("#header").hidden=true;$("#b-paused").hidden=true;$("#detail").hidden=false;window.scrollTo(0,0);
+  setTimeout(()=>{const b=$("#detail .back");b&&b.focus()},30);
+}
+function renderDetail(){
+  const o=ORDERS.find(x=>x.no===openNo);if(!o)return;
+  const t=ticked(o),n=o.lines.length,all=t===n,alc=o.lines.some(l=>l.alc);
+  $("#detail").innerHTML=`
+    <div class="dhead gut"><button class="back" id="back"><span aria-hidden="true">‹</span> All orders</button>
+      <div class="dtable"><small>TABLE</small><b class="num" id="d-title">${o.table}</b></div>
+      <div class="dinfo num"><span>Order <b>#${o.no}</b> · Received <b>${hm(o.at)}</b></span><span>Waiting <b>${waitText(o)}</b> · Paid <b>${gbp(o.total)}</b> by ${o.method}</span></div></div>
+    <div class="dbody gut">
+      <div class="hint"><span>Tap each drink as you pour it.</span>${alc?'<span class="idchk">Contains alcohol: check ID if they look under 25</span>':""}</div>
+      <ul class="items">${o.lines.map((l,i)=>`<li><button class="item" role="checkbox" aria-checked="${l.done}" data-tick="${i}">
+        <span class="box">${CHECK}</span><span class="iq num">${l.qty}×</span>
+        <span><span class="iname">${esc(l.name)}</span>${l.noIce?" "+NOICE:""}<span class="iopt">${esc(l.opt)}</span></span></button></li>`).join("")}</ul>
+      <div class="dtotal num"><span>${drinks(o)} drinks in ${n} line${n===1?"":"s"}</span><span>Total paid <b>${gbp(o.total)}</b></span></div>
+      ${problemOpen?`<div class="problem"><span>What's wrong with this order?</span><div class="row">
+        <button class="pbtn" data-prob="An item is out of stock">Item out of stock</button><button class="pbtn" data-prob="Refused service: no ID">Refusing service (no ID)</button><button class="pbtn" data-prob="Can't find the table">Can't find the table</button></div>
+        <span style="font-weight:500;font-size:.9rem">This alerts a manager to sort out a refund. The order stays on the screen until they do.</span></div>`:""}
+    </div>
+    <div class="dfoot gut"><div class="dfoot-in">
+      <div class="prog num"><span class="bar"><i style="width:${t/n*100}%"></i></span><span>${t} of ${n} ticked</span></div>
+      ${all?`<button class="fulfil" id="fulfil"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>ORDER FULFILLED</button>`
+        :`<div class="waiting">Tick every drink to finish this order (${n-t} to go)</div>`}
+      <div class="dsmall">${t?'<button id="untick">Untick all</button>':""}<button id="problem">${problemOpen?"Hide problem options":"Problem with this order"}</button></div>
+    </div></div>`;
+  $("#back").onclick=closeDetail;
+  $("#detail .items").onclick=e=>{const b=e.target.closest("[data-tick]");if(!b)return;const l=o.lines[+b.dataset.tick];l.done=!l.done;renderDetail();
+    const f=$("#fulfil");if(f&&l.done)f.focus();else{const again=document.querySelector(`[data-tick="${b.dataset.tick}"]`);again&&again.focus()}};
+  const f=$("#fulfil");if(f)f.onclick=()=>fulfil(o);
+  const u=$("#untick");if(u)u.onclick=()=>{o.lines.forEach(l=>l.done=false);renderDetail()};
+  $("#problem").onclick=()=>{problemOpen=!problemOpen;renderDetail()};
+  document.querySelectorAll("[data-prob]").forEach(b=>b.onclick=()=>{problemOpen=false;renderDetail();toast(`Manager alerted: ${b.dataset.prob} (Table ${o.table})`)});
+}
+function closeDetail(){openNo=null;$("#detail").hidden=true;$("#list-view").hidden=false;$("#header").hidden=false;$("#b-paused").hidden=!paused;renderBoard()}
+function fulfil(o){
+  ORDERS=ORDERS.filter(x=>x!==o);o.fin=now();DONE.unshift(o);closeDetail();
+  toast(`Table ${o.table} fulfilled. The customer sees "Delivered".`,()=>{DONE=DONE.filter(x=>x!==o);delete o.fin;ORDERS.push(o);renderBoard()});
+}
+document.addEventListener("keydown",e=>{if(e.key!=="Escape")return;
+  if(!$("#adm-login").hidden){$("#adm-login").hidden=true;return}
+  if(!$("#adm-panel").hidden){closeModals();toast("Admin locked");return}
+  if(openNo!=null)closeDetail()});
+
+// ---------- New orders, sound, alerts ----------
+let audio=null;
+function chime(){if(!audio)return;const t=audio.currentTime;[[880,0],[1175,.18]].forEach(([f,d])=>{const o=audio.createOscillator(),g=audio.createGain();o.type="sine";o.frequency.value=f;
+  g.gain.setValueAtTime(0,t+d);g.gain.linearRampToValueAtTime(.35,t+d+.02);g.gain.exponentialRampToValueAtTime(.001,t+d+.6);o.connect(g).connect(audio.destination);o.start(t+d);o.stop(t+d+.65)})}
+$("#sound").onclick=async()=>{
+  if(audio){audio.close();audio=null;$("#sound").textContent="Enable sound";$("#sound").classList.remove("on");$("#sound").setAttribute("aria-pressed","false");return}
+  try{audio=new (window.AudioContext||window.webkitAudioContext)();await audio.resume();chime();$("#sound").textContent="Sound on";$("#sound").classList.add("on");$("#sound").setAttribute("aria-pressed","true")}
+  catch(e){audio=null;toast("This browser blocked sound. Visual alerts still work.")}
+  try{navigator.wakeLock&&await navigator.wakeLock.request("screen")}catch(e){}
+};
+let alertT;
+function newOrder(){
+  const tpl=NEXT.shift();if(!tpl){toast("No more example orders to send");return}
+  const o={...tpl,lines:tpl.lines.map(l=>({...l})),no:nextNo++,at:now(),seen:false};ORDERS.push(o);
+  if(openNo==null)renderBoard();else $("#n-open").textContent=ORDERS.length;
+  const a=$("#alert");a.innerHTML=`<div><b>NEW ORDER · TABLE ${o.table}</b><br><span class="num">#${o.no} · ${drinks(o)} drinks · ${hm(o.at)}</span></div>`;a.hidden=false;
+  a.onclick=()=>{a.hidden=true;openOrder(o.no)};clearTimeout(alertT);alertT=setTimeout(()=>a.hidden=true,6000);chime();
+}
+$("#d-new").onclick=newOrder;
+
+// ---------- Pause + connection ----------
+let paused=false;
+function setPaused(v){paused=v;$("#b-paused").hidden=!paused||openNo!=null;toast(paused?"Online ordering paused for all customers":"Online ordering resumed")}
+$("#d-conn").onclick=()=>{const c=$("#conn");c.classList.add("down");c.lastElementChild.textContent="Offline";$("#b-down").hidden=false;
+  setTimeout(()=>{c.lastElementChild.textContent="Reconnecting…"},2500);
+  setTimeout(()=>{c.classList.remove("down");c.lastElementChild.textContent="Live";$("#b-down").hidden=true;toast("Back online. Orders reloaded.")},6000)};
+$("#demo-btn").onclick=()=>{const p=$("#demo-panel");p.hidden=!p.hidden;$("#demo-btn").setAttribute("aria-expanded",!p.hidden)};
+
+// ---------- Bar password sign-in ----------
+// Prototype only: in the live app the password is checked on the server, never in the page.
+const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+let barPw="risingsun", fails=0, lockUntil=0, started=false;
+function lockScreen(){document.body.classList.remove("in");closeModals();$("#bar-pw").value="";$("#login-err").hidden=true;setTimeout(()=>$("#bar-pw").focus(),30)}
+function enterBoard(){document.body.classList.add("in");renderBoard();tick();if(!started){started=true;setTimeout(newOrder,25000)}}
+$("#login-form").onsubmit=e=>{e.preventDefault();const err=$("#login-err");
+  if(now()<lockUntil){err.hidden=false;err.textContent=`Too many wrong attempts. Try again in ${Math.ceil((lockUntil-now())/1000)} seconds.`;return}
+  if($("#bar-pw").value===barPw){fails=0;err.hidden=true;if($("#remember").checked)store.set("rs-bar-signed",true);enterBoard()}
+  else{fails++;err.hidden=false;
+    if(fails>=5){lockUntil=now()+30000;fails=0;err.textContent="Too many wrong attempts. Try again in 30 seconds."}
+    else err.textContent="That password isn't right. Check with a manager.";$("#bar-pw").select()}};
+document.addEventListener("click",e=>{const b=e.target.closest("[data-show]");if(!b)return;const i=document.getElementById(b.dataset.show),show=i.type==="password";i.type=show?"text":"password";b.textContent=show?"Hide":"Show"});
+
+// ---------- Admin section (staff ID + password) ----------
+const STAFF_LOGINS={gerwyn:{pw:"admin",name:"Gerwyn",role:"Owner"}};
+const STOCK=[["Birra Moretti","Half & pint",true],["Guinness","Half & pint",false],["Carling","Half & pint",true],["Tiny Rebel Cwtch","Half & pint",true],["Brains SA","Half & pint",true],
+  ["Sauvignon Blanc","250ml glass",false],["Coca-Cola","Draught",true],["Diet Coke","Draught",true],["Gordon's Gin","Single & double",true],["Prosecco DOC","Bottle",true]];
+let admT=null, admLeft=300, refundAsk=null;
+function closeModals(){$("#adm-login").hidden=true;$("#adm-panel").hidden=true;clearInterval(admT)}
+const resetAdm=()=>{admLeft=300};
+$("#admin-btn").onclick=()=>{$("#adm-form").reset();$("#adm-err").hidden=true;$("#adm-login").hidden=false;setTimeout(()=>$("#adm-id").focus(),30)};
+document.addEventListener("click",e=>{const c=e.target.closest("[data-close]");if(c)document.getElementById(c.dataset.close).hidden=true});
+$("#adm-form").onsubmit=e=>{e.preventDefault();const u=STAFF_LOGINS[$("#adm-id").value.trim().toLowerCase()],err=$("#adm-err");
+  if(!u||u.pw!==$("#adm-pw").value){err.hidden=false;err.textContent="That staff ID or password isn't right.";$("#adm-pw").select();return}
+  $("#adm-login").hidden=true;$("#ap-who").textContent=`${u.name} · ${u.role}`;refundAsk=null;renderAdmin();$("#adm-panel").hidden=false;resetAdm();
+  clearInterval(admT);admT=setInterval(()=>{admLeft--;$("#ap-timer").textContent=`Locks automatically in ${Math.floor(admLeft/60)}:${String(admLeft%60).padStart(2,"0")} if nobody taps it.`;
+    if(admLeft<=0){closeModals();toast("Admin locked")}},1000)};
+$("#adm-panel").addEventListener("pointerdown",resetAdm);$("#adm-panel").addEventListener("keydown",resetAdm);
+$("#ap-lock").onclick=()=>{closeModals();toast("Admin locked")};
+function renderAdmin(){
+  const recent=[...ORDERS,...DONE].sort((a,b)=>b.at-a.at).slice(0,6);
+  $("#ap-body").innerHTML=`
+  <section class="ap-sec"><h3>Online ordering</h3>
+    <div class="ap-row"><span><b style="color:${paused?"var(--red)":"var(--ok)"}">${paused?"Paused":"Active"}</b><br><small>${paused?"Customers can browse but can't pay.":"Customers can order and pay."}</small></span>
+    <button class="apbtn ${paused?"":"danger"}" id="ap-pause">${paused?"RESUME ONLINE ORDERS":"PAUSE ONLINE ORDERS"}</button></div></section>
+  <section class="ap-sec"><h3>Out of stock</h3><small>Switch a drink off and customers can't order it.</small>
+    ${STOCK.map((s,i)=>`<div class="ap-row"><span>${esc(s[0])}<br><small>${esc(s[1])}</small></span><button class="sw" role="switch" aria-checked="${s[2]}" data-stock="${i}" aria-label="${esc(s[0])} available"></button></div>`).join("")}</section>
+  <section class="ap-sec"><h3>Refund an order</h3>
+    ${recent.map(o=>`<div class="ap-row"><span class="num"><b>#${o.no}</b> · Table ${o.table} · ${hm(o.at)}<br><small>${o.lines.map(l=>l.qty+"× "+esc(l.name)).join(", ")}</small></span>
+      ${o.refunded?'<span class="tagref">Refunded</span>':refundAsk===o.no?`<span class="ap-confirm"><button class="apbtn danger sm" data-yes="${o.no}">Refund ${gbp(o.total)}</button><button class="apbtn ghost sm" data-no="1">Cancel</button></span>`:`<button class="apbtn ghost sm" data-ref="${o.no}">Refund</button>`}</div>`).join("")}
+    <small>Part refunds and older orders are in the full admin site.</small></section>
+  <section class="ap-sec"><h3>Bar screen password</h3><small>The password staff type to open this screen.</small>
+    <form id="pw-form" class="pwgrid" novalidate><label class="lfield" for="np1"><span>New password</span><input id="np1" type="password" autocomplete="new-password"></label>
+    <label class="lfield" for="np2"><span>Type it again</span><input id="np2" type="password" autocomplete="new-password"></label>
+    <label class="lck" for="np-out"><input type="checkbox" id="np-out" checked> Sign out the other bar iPads</label><p class="lerr" id="np-err" hidden></p><button class="apbtn ghost">Change password</button></form></section>
+  <div class="ap-foot"><a class="apbtn ghost" href="/demo/admin/" >Open the full admin site</a><button class="apbtn ghost" id="ap-signout">Sign this iPad out of the bar screen</button></div>`;
+}
+$("#ap-body").addEventListener("click",e=>{
+  if(e.target.closest("#ap-pause")){setPaused(!paused);renderAdmin();return}
+  if(e.target.closest("#ap-signout")){store.del("rs-bar-signed");lockScreen();toast("This iPad is signed out of the bar screen");return}
+  const s=e.target.closest("[data-stock]"),r=e.target.closest("[data-ref]"),y=e.target.closest("[data-yes]"),n=e.target.closest("[data-no]");
+  if(s){const it=STOCK[+s.dataset.stock];it[2]=!it[2];s.setAttribute("aria-checked",it[2]);toast(`${it[0]} ${it[2]?"is back on the menu":"marked out of stock"}`)}
+  if(r){refundAsk=+r.dataset.ref;renderAdmin()}
+  if(n){refundAsk=null;renderAdmin()}
+  if(y){const no=+y.dataset.yes,o=ORDERS.find(x=>x.no===no)||DONE.find(x=>x.no===no);o.refunded=true;
+    if(ORDERS.includes(o)){ORDERS=ORDERS.filter(x=>x!==o);o.fin=now();DONE.unshift(o)}
+    refundAsk=null;renderAdmin();renderBoard();toast(`${gbp(o.total)} refunded on #${o.no}. It's taken off the bar screen.`)}
+});
+$("#ap-body").addEventListener("submit",e=>{e.preventDefault();const a=$("#np1").value,b=$("#np2").value,err=$("#np-err");
+  if(a.length<8){err.hidden=false;err.textContent="Use at least 8 characters. A short phrase is easiest to remember.";return}
+  if(a!==b){err.hidden=false;err.textContent="The two passwords don't match. Type them again.";return}
+  barPw=a;err.hidden=true;$("#np1").value=$("#np2").value="";
+  toast($("#np-out").checked?"Bar password changed. Other iPads will need the new one.":"Bar password changed")});
+
+// ---------- Toast ----------
+let tt;function toast(msg,undo){const t=$("#toast");$("#toast-msg").textContent=msg;const u=$("#toast-undo");u.hidden=!undo;u.onclick=()=>{t.hidden=true;undo()};t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,undo?7000:3000)}
+
+// ---------- Clock + timers ----------
+function tick(){$("#clock").textContent=hm(now());if(openNo==null)renderBoard();else{const o=ORDERS.find(x=>x.no===openNo);if(o){const w=document.querySelector(".dinfo span:last-child b");w&&(w.textContent=waitText(o))}}}
+setInterval(tick,15000);
+renderBoard();tick();
+if(store.get("rs-bar-signed",false)) enterBoard(); else lockScreen();
+</script>
+
+</body>
+</html>

@@ -14,6 +14,20 @@
   VITE_SUPABASE_URL = "https://faioegqaamrvbfzurzun.supabase.co"
   VITE_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_u_5rOP4_gc1jvfTAhNNM4g_IEorneaP"
 
+# The clickable design demo lives at /demo, /demo/staff and /demo/admin.
+[[redirects]]
+  from = "/demo"
+  to = "/demo/index.html"
+  status = 200
+[[redirects]]
+  from = "/demo/staff"
+  to = "/demo/staff/index.html"
+  status = 200
+[[redirects]]
+  from = "/demo/admin"
+  to = "/demo/admin/index.html"
+  status = 200
+
 # One app serves every page (/, /staff, /admin), so send all paths to it.
 # Files that exist (logo, scripts) and /.netlify/functions/* are served first.
 [[redirects]]
@@ -32,6 +46,11 @@
 # Staff and admin pages must never appear in search results.
 [[headers]]
   for = "/staff/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/demo/*"
   [headers.values]
     X-Robots-Tag = "noindex, nofollow"
 

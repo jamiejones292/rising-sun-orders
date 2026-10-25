@@ -8,6 +8,7 @@ code, order and pay for drinks on their phone, and the order appears on the bar 
 | `drinksorder.app` | Customers (the table QR code) |
 | `drinksorder.app/staff` | Bar iPads |
 | `drinksorder.app/admin` | Owner and managers |
+| `drinksorder.app/demo` | The original clickable design demo |
 
 ## Build progress
 

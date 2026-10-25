@@ -70,6 +70,7 @@ Prototypes in `design/` are the reference for look and behaviour. Brand: forest
 Garamond (display), Cinzel (small caps labels), Figtree (UI text).
 
 ## Hosting
-Domain `drinksorder.app` (Cloudflare DNS, records set to DNS only) points at Netlify
-project `risingsunpub`, currently serving the demo. Do not connect this repository to
-that project or change its deploys without the owner's go-ahead.
+Domain `drinksorder.app` (Cloudflare DNS, records set to DNS only) is served by Netlify
+project `risingsunpub`, which the owner is linking to this repository (branch
+`setup/project-foundation`), so every push deploys live. The old clickable demo is kept as
+static files in `public/demo/` (served at `/demo`, `/demo/staff`, `/demo/admin`).

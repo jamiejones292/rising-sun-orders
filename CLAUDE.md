@@ -68,7 +68,8 @@ architecture changes, and never ask for secrets in chat.
 - Lazy-loaded at `/staff`. Bar password signs in to `bar@staff.drinksorder.app` and the
   session persists. Orders load from `useBarOrders`: Supabase Realtime on orders,
   order_items and venue_settings, plus a 15-second poll and reload on wake/online as the
-  safety net; "offline" banner if nothing has loaded for 45 seconds.
+  safety net; "offline" banner if nothing has loaded for 45 seconds. Realtime confirmed
+  working on the live site (owner's two-tablet test: orders arrived instantly).
 - NEW marker: not opened on this iPad (localStorage) and still `fulfilment_status = new`.
 - The admin section signs a manager in on a separate, unsaved client
   (`createElevatedClient`) so the bar session stays put; locks after 5 minutes. Bar password

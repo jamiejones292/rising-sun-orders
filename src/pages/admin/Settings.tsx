@@ -25,6 +25,7 @@ export default function Settings() {
         onChanged={(p) => venue.setSettings({ ...venue.settings!, ordering_paused: p })}
       />
       <CustomerMenuPanel settings={venue.settings} onSaved={venue.setSettings} />
+      <TestOrdersPanel settings={venue.settings} onSaved={venue.setSettings} />
       <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,360px),1fr))] items-start gap-5.5">
         <HoursPanel hours={venue.hours} onSaved={venue.reload} />
         <OperationsPanel settings={venue.settings} onSaved={venue.setSettings} />
@@ -71,6 +72,65 @@ function CustomerMenuPanel({ settings, onSaved }: { settings: VenueSettings; onS
           onChange={(on) => void save({ customer_menu_live: on }, on ? "The menu is now showing to customers" : "The menu is hidden from customers")}
         />
       </div>
+    </Panel>
+  );
+}
+
+function TestOrdersPanel({ settings, onSaved }: { settings: VenueSettings; onSaved: (s: VenueSettings) => void }) {
+  const toast = useToast();
+  const { busy, save } = useSaveSettings(onSaved);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const until = settings.test_orders_until ? new Date(settings.test_orders_until) : null;
+  const on = !!until && until.getTime() > Date.now();
+  const untilText = until?.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" });
+
+  async function deleteTests() {
+    const { data, error } = await supabase.rpc("admin_delete_test_orders");
+    setConfirmDelete(false);
+    if (error) return toast(friendlyError(error), { error: true });
+    toast(`${data as number} test order${data === 1 ? "" : "s"} deleted`);
+  }
+
+  return (
+    <Panel title="Test orders">
+      <p className="m-0 max-w-[70ch] text-sm text-muted">
+        Try the whole journey before payments are connected: open drinksorder.app/?preview on one tablet as a customer and /staff on
+        another. Test orders skip payment, go straight to the bar screen marked "TEST ORDER · NOT PAID", and switch themselves off
+        after 2 hours. Ordering hours are ignored for test orders.
+      </p>
+      <div className="flex flex-wrap items-center gap-3">
+        <b className={on ? "text-warn" : "text-muted"}>{on ? `Test orders ON until ${untilText}` : "Test orders off"}</b>
+        <span className="flex-1" />
+        {on ? (
+          <Button variant="ghost" disabled={busy} onClick={() => void save({ test_orders_until: null }, "Test orders switched off")}>
+            Turn off now
+          </Button>
+        ) : (
+          <Button
+            disabled={busy}
+            onClick={() => void save({ test_orders_until: new Date(Date.now() + 2 * 3600_000).toISOString() }, "Test orders on for 2 hours")}
+          >
+            Turn on for 2 hours
+          </Button>
+        )}
+        <Button variant="danger-ghost" onClick={() => setConfirmDelete(true)}>
+          Delete all test orders
+        </Button>
+      </div>
+      {confirmDelete && (
+        <div className="flex flex-col gap-2.5 rounded border border-alert bg-[#fbeae5] p-3 text-sm text-alert">
+          <b>Delete every test order?</b>
+          They disappear from the bar screen and Fulfilled today. Real orders are never touched.
+          <div className="flex gap-2">
+            <Button variant="danger" small onClick={() => void deleteTests()}>
+              Delete test orders
+            </Button>
+            <Button variant="ghost" small onClick={() => setConfirmDelete(false)}>
+              Keep them
+            </Button>
+          </div>
+        </div>
+      )}
     </Panel>
   );
 }

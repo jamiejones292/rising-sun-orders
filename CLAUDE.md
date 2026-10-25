@@ -86,6 +86,10 @@ architecture changes, and never ask for secrets in chat.
 - `src/lib/hours.ts` works in Europe/London and handles closing after midnight.
 - Confirm screen shows a "card payments are being set up" holding panel: this is where the
   provider's Apple Pay / Google Pay / card step plugs in. No unpaid orders are created.
+- Test orders (migration 005): `place_test_order(jsonb)` prices everything in SQL, only while
+  `venue_settings.test_orders_until` is in the future (owner's 2-hour button), marks orders
+  `payment_provider = 'test'`; `admin_delete_test_orders()` clears them. Test mode ignores
+  ordering hours in the UI. Bar shows "TEST ORDER · NOT PAID".
 - `/order/:token` tracking polls `get_order_tracking` every 8 seconds (anon can't
   subscribe to orders).
 

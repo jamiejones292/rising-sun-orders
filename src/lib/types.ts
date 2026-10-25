@@ -79,6 +79,7 @@ export type VenueSettings = {
   receipt_reply_to: string | null;
   email_retention_days: number;
   customer_menu_live: boolean;
+  test_orders_until: string | null;
 };
 
 export type OpeningHours = {

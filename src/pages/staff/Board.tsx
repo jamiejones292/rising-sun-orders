@@ -88,6 +88,9 @@ export function OrderCards({
                 {drinkCount(o)} drink{drinkCount(o) === 1 ? "" : "s"}
               </span>
             </div>
+            {o.payment_method_label?.startsWith("TEST") && (
+              <div className="mx-4 mb-2.5 rounded bg-ink px-2.5 py-1 text-center text-xs font-extrabold tracking-wider text-white">TEST ORDER · NOT PAID</div>
+            )}
             {o.problem_reason && (
               <div className="mx-4 mb-2.5 rounded bg-bar-red-soft px-2.5 py-1.5 text-sm font-bold text-bar-red">Problem: {o.problem_reason}</div>
             )}

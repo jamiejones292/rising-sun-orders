@@ -23,6 +23,7 @@ export type CustomerMenu = {
     age_declaration_text: string;
     minimum_order_pence: number;
     customer_menu_live: boolean;
+    test_orders_until: string | null;
   };
 };
 
@@ -72,7 +73,7 @@ export function useCustomerMenu() {
       supabase.from("opening_hours").select("*").order("weekday"),
       supabase
         .from("venue_settings")
-        .select("ordering_paused, pause_message, age_declaration_text, minimum_order_pence, customer_menu_live")
+        .select("ordering_paused, pause_message, age_declaration_text, minimum_order_pence, customer_menu_live, test_orders_until")
         .eq("id", 1)
         .single(),
     ]);

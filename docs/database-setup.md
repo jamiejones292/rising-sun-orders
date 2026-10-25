@@ -69,6 +69,7 @@ Run them in date order. Each one is all-or-nothing.
 | `20261025000002_admin_saves.sql` | One-step saving for drinks, category order and ordering hours (admin site) | Done |
 | `20261026000003_order_problems.sql` | "Problem with this order" flags for the bar screen | **Needed for the bar screen** |
 | `20261026000004_customer_menu_switch.sql` | "Show the drinks menu to customers" switch in Venue settings | **Needed for the customer menu** |
+| `20261026000005_test_orders.sql` | Test orders without payment (Venue settings → Test orders) | **Needed for test orders** |
 
 ## Trying the bar screen with a test order
 Real orders arrive once payments are set up. To see how the bar screen behaves before then,

@@ -124,6 +124,9 @@ export default function OrderDetail({
             <span className="rounded-md bg-bar-amber-soft px-3 py-2 text-sm font-bold text-[#7a4b00]">Contains alcohol: check ID if they look under 25</span>
           )}
         </div>
+        {order.payment_method_label?.startsWith("TEST") && (
+          <div className="rounded-md bg-ink px-3.5 py-2.5 text-center font-extrabold tracking-wider text-white">TEST ORDER · NO PAYMENT TAKEN</div>
+        )}
         {order.problem_reason && (
           <div className="rounded-md bg-bar-red-soft px-3.5 py-2.5 font-bold text-bar-red">
             Problem reported: {order.problem_reason}. A manager will sort out any refund.

@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "../../lib/supabase";
 import { formatPence } from "../../lib/money";
 import { orderingWindow } from "../../lib/hours";
 import { priceLine } from "../../lib/pricing";
@@ -20,6 +22,7 @@ export default function CustomerApp({ preview }: { preview: boolean }) {
   const [sheet, setSheet] = useState<{ drink: MenuDrink; index: number | null } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [details, setDetails] = useState<CheckoutDetails>({ table: basket.table ?? "", ageConfirmed: false, email: "" });
+  const navigate = useNavigate();
 
   useEffect(() => {
     document.title = "The Rising Sun Inn · Drinks to your table";
@@ -58,7 +61,33 @@ export default function CustomerApp({ preview }: { preview: boolean }) {
   const window_ = orderingWindow(menu.hours);
   const paused = menu.settings.ordering_paused;
   const belowMinimum = total > 0 && total < menu.settings.minimum_order_pence;
-  const canCheckout = !paused && window_.open && !problems && !belowMinimum && count > 0;
+  // Test orders (no payment) while the owner has test mode switched on.
+  const testMode = !!menu.settings.test_orders_until && new Date(menu.settings.test_orders_until).getTime() > Date.now();
+  const canCheckout = !paused && (window_.open || testMode) && !problems && !belowMinimum && count > 0;
+
+  async function placeTestOrder(): Promise<string | null> {
+    const { data, error: err } = await supabase.rpc("place_test_order", {
+      p_order: {
+        table: details.table,
+        age_confirmed: details.ageConfirmed,
+        email: details.email || null,
+        lines: basket.lines.map((l) => ({
+          drink_id: l.drinkId,
+          variant_id: l.variantId,
+          options: l.options,
+          no_ice: l.noIce,
+          quantity: l.quantity,
+        })),
+      },
+    });
+    if (err) {
+      void reload();
+      return TEST_ORDER_ERRORS[Object.keys(TEST_ORDER_ERRORS).find((k) => err.message.includes(k)) ?? ""] ?? "Something went wrong placing the order. Please try again.";
+    }
+    basket.clear();
+    navigate(`/order/${(data as { tracking_token: string }).tracking_token}`);
+    return null;
+  }
 
   const notice: ReactNode = paused ? (
     <Banner title="Online ordering temporarily paused">{menu.settings.pause_message}</Banner>
@@ -70,7 +99,7 @@ export default function CustomerApp({ preview }: { preview: boolean }) {
 
   const checkoutBlock = paused
     ? "Ordering is paused for a moment."
-    : !window_.open
+    : !window_.open && !testMode
       ? "Table ordering is closed right now."
       : problems
         ? "Some drinks in your basket need changing first."
@@ -167,7 +196,15 @@ export default function CustomerApp({ preview }: { preview: boolean }) {
           }}
         />
       )}
-      {screen === "confirm" && <ConfirmScreen table={details.table} drinks={count} totalPence={total} onChangeTable={() => go("table")} />}
+      {screen === "confirm" && (
+        <ConfirmScreen
+          table={details.table}
+          drinks={count}
+          totalPence={total}
+          onChangeTable={() => go("table")}
+          onPlaceTestOrder={testMode ? placeTestOrder : null}
+        />
+      )}
 
       {(screen === "menu" || screen === "basket") && count > 0 && (
         <div className="fixed bottom-0 left-1/2 z-6 w-full max-w-[440px] -translate-x-1/2 bg-gradient-to-t from-ivory from-70% to-transparent pt-3 pb-[calc(0.9rem+env(safe-area-inset-bottom,0px))] pr-[max(0.9rem,env(safe-area-inset-right,0px))] pl-[max(0.9rem,env(safe-area-inset-left,0px))]">
@@ -216,6 +253,19 @@ export default function CustomerApp({ preview }: { preview: boolean }) {
     </div>
   );
 }
+
+const TEST_ORDER_ERRORS: Record<string, string> = {
+  test_mode_off: "Test orders have been switched off. Turn them on again in Venue settings.",
+  ordering_paused: "Ordering has just been paused. Please try again shortly.",
+  table_not_found: "That table isn't available. Go back and choose another.",
+  drink_unavailable: "A drink in your basket has just sold out. Go back to the basket to change it.",
+  size_unavailable: "A size in your basket has just become unavailable. Go back to the basket to change it.",
+  option_unavailable: "An extra in your basket is no longer available. Go back to the basket to change it.",
+  choice_required: "One of your drinks needs an option choosing. Go back to the basket to change it.",
+  age_not_confirmed: "Please confirm the age declaration on the previous step.",
+  below_minimum: "Your basket is below the minimum order.",
+  bad_email: "Please check the receipt email address.",
+};
 
 function Banner({ title, children }: { title: string; children: ReactNode }) {
   return (

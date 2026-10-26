@@ -126,10 +126,8 @@ Garamond (display), Cinzel (small caps labels), Figtree (UI text).
 ## Hosting
 Domain `drinksorder.app` (Cloudflare DNS, records set to DNS only) is served by Netlify
 project `risingsunpub`, which the owner is linking to this repository (branch
-`setup/project-foundation`), so every push deploys live. Netlify's free plan only builds
-commits from one Git contributor on a private repo, so commits must be authored as the owner
-(`git config user.name jamiejones292`, `user.email
-342932116+jamiejones292@users.noreply.github.com`, agreed with the owner). Netlify also counts
-`Co-Authored-By` trailers as contributors, so the owner agreed to drop that trailer; keep only
-the `Claude-Session:` link. Anything else fails with "unrecognized Git contributor". The old clickable demo is kept as
+`setup/project-foundation`), so every push deploys live. The repository is public (owner's decision) because
+Netlify's free plan refused builds from more than one Git contributor on a private repo. Keep
+it free of secrets: keys live only in Netlify environment variables. Commits are authored as
+the owner (`jamiejones292`, `342932116+jamiejones292@users.noreply.github.com`). The old clickable demo is kept as
 static files in `public/demo/` (served at `/demo`, `/demo/staff`, `/demo/admin`).

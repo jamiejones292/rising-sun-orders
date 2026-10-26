@@ -28,6 +28,8 @@ export default function TableScreen({
   const [email, setEmail] = useState(initial.email);
   const [emailTouched, setEmailTouched] = useState(false);
   const emailOk = !email.trim() || EMAIL_RE.test(email.trim());
+  // Receipts are sent by the payment step, which isn't live yet.
+  const testMode = !!menu.settings.test_orders_until && new Date(menu.settings.test_orders_until).getTime() > Date.now();
   const ready = !!table && (!needsAge || age) && emailOk;
 
   function onType(value: string) {
@@ -105,6 +107,7 @@ export default function TableScreen({
         />
         {emailTouched && !emailOk && <p className="text-sm text-alert">Please check your email address, for example name@example.com.</p>}
         <p className="text-sm text-muted">We'll only use this to send your receipt, never for marketing.</p>
+        {testMode && <p className="text-sm font-semibold text-gold-ink">Test mode: receipt emails aren't being sent yet. They start with card payments.</p>}
       </div>
       <div className="fixed bottom-0 left-1/2 z-6 w-full max-w-[440px] -translate-x-1/2 bg-gradient-to-t from-ivory from-70% to-transparent pt-3 pb-[calc(0.9rem+env(safe-area-inset-bottom,0px))] pr-[max(0.9rem,env(safe-area-inset-right,0px))] pl-[max(0.9rem,env(safe-area-inset-left,0px))]">
         <button

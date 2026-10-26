@@ -4,6 +4,8 @@ import { supabase } from "../../lib/supabase";
 import { formatPence } from "../../lib/money";
 import { orderingWindow } from "../../lib/hours";
 import { priceLine } from "../../lib/pricing";
+import { readHistory, saveToHistory, type PastOrder } from "./history";
+import RecentOrders from "./RecentOrders";
 import { useBasket } from "./basket";
 import { useCustomerMenu, type MenuDrink } from "./useCustomerMenu";
 import MenuScreen from "./MenuScreen";
@@ -21,6 +23,8 @@ export default function CustomerApp({ preview }: { preview: boolean }) {
   const [category, setCategory] = useState("all");
   const [sheet, setSheet] = useState<{ drink: MenuDrink; index: number | null } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [history, setHistory] = useState<PastOrder[]>(readHistory);
+  const [againNote, setAgainNote] = useState<string | null>(null);
   const [details, setDetails] = useState<CheckoutDetails>({ table: basket.table ?? "", ageConfirmed: false, email: "" });
   const navigate = useNavigate();
 
@@ -35,6 +39,7 @@ export default function CustomerApp({ preview }: { preview: boolean }) {
 
   const go = (s: Screen) => {
     setScreen(s);
+    if (s !== "basket") setAgainNote(null);
     window.scrollTo(0, 0);
     if (s === "basket" || s === "table") void reload(); // re-check prices and stock
   };
@@ -84,9 +89,47 @@ export default function CustomerApp({ preview }: { preview: boolean }) {
       void reload();
       return TEST_ORDER_ERRORS[Object.keys(TEST_ORDER_ERRORS).find((k) => err.message.includes(k)) ?? ""] ?? "Something went wrong placing the order. Please try again.";
     }
+    const placed = data as { order_number: number; tracking_token: string };
+    saveToHistory({
+      token: placed.tracking_token,
+      orderNumber: placed.order_number,
+      placedAt: new Date().toISOString(),
+      table: details.table,
+      totalPence: total,
+      lines: basket.lines,
+      summary: priced.flatMap((p, i) => (p.ok ? [`${basket.lines[i]!.quantity} × ${p.drinkName}${p.noIce ? " (no ice)" : ""}`] : [])).join(", "),
+    });
     basket.clear();
-    navigate(`/order/${(data as { tracking_token: string }).tracking_token}`);
+    navigate(`/order/${placed.tracking_token}`);
     return null;
+  }
+
+  // "Same again": put a past round back in the basket at tonight's prices,
+  // leaving out anything sold out or no longer on the menu.
+  function sameAgain(order: PastOrder) {
+    if (!menu) return;
+    const left: string[] = [];
+    let added = 0;
+    for (const line of order.lines) {
+      const p = priceLine({ drinks: menu.drinks }, line);
+      if (p.ok) {
+        basket.add(line);
+        added += line.quantity;
+      } else {
+        const name = menu.drinks.find((d) => d.id === line.drinkId)?.name ?? "A drink";
+        left.push(p.reason === "drink_unavailable" ? `${name} is sold out tonight` : `${name} has changed on the menu`);
+      }
+    }
+    if (menu.tables.some((t) => t.label === order.table)) {
+      basket.setTable(order.table);
+      setDetails((d) => ({ ...d, table: order.table }));
+    }
+    setHistory(readHistory());
+    setAgainNote(left.length ? `${left.join(". ")}, so we've left ${left.length === 1 ? "it" : "them"} out.` : null);
+    if (added) {
+      setToast(`Added your round from ${order.orderNumber ? `order #${order.orderNumber}` : "last time"}`);
+      go("basket");
+    } else setToast("Nothing from that round is available tonight.");
   }
 
   const notice: ReactNode = paused ? (
@@ -140,6 +183,7 @@ export default function CustomerApp({ preview }: { preview: boolean }) {
           <button onClick={() => go("menu")} className="min-h-13.5 w-full rounded border border-forest bg-forest font-semibold text-ivory">
             View the drinks menu
           </button>
+          <RecentOrders orders={history} onAgain={sameAgain} />
           <p className="mx-auto max-w-[36ch] text-center text-sm text-muted">
             Alcohol is only served to over-18s. We operate Challenge 25, so please have ID ready. Ask a member of the team about allergens.
           </p>
@@ -165,7 +209,14 @@ export default function CustomerApp({ preview }: { preview: boolean }) {
           menu={menu}
           category={category}
           onCategory={setCategory}
-          notice={notice && <div className="gutter pt-4">{notice}</div>}
+          notice={
+            (notice || (history.length > 0 && count === 0)) && (
+              <div className="gutter flex flex-col gap-4 pt-4">
+                {notice}
+                {count === 0 && <RecentOrders orders={history} onAgain={sameAgain} compact />}
+              </div>
+            )
+          }
           onPick={(d) => (d.available ? setSheet({ drink: d, index: null }) : setToast(`${d.name} is sold out tonight. Sorry!`))}
         />
       )}
@@ -180,7 +231,14 @@ export default function CustomerApp({ preview }: { preview: boolean }) {
           }}
           onQuantity={basket.setQuantity}
           onRemove={basket.remove}
-          notice={checkoutBlock && count > 0 ? <p className="rounded border border-alert bg-[#fbede7] p-3 text-sm text-alert">{checkoutBlock}</p> : null}
+          notice={
+            (againNote || (checkoutBlock && count > 0)) && (
+              <>
+                {againNote && <p className="rounded border border-gold bg-paper p-3 text-sm text-forest">{againNote}</p>}
+                {checkoutBlock && count > 0 && <p className="rounded border border-alert bg-[#fbede7] p-3 text-sm text-alert">{checkoutBlock}</p>}
+              </>
+            )
+          }
         />
       )}
       {screen === "table" && (

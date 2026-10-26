@@ -70,7 +70,7 @@ Run them in date order. Each one is all-or-nothing.
 | `20261026000003_order_problems.sql` | "Problem with this order" flags for the bar screen | Done |
 | `20261026000004_customer_menu_switch.sql` | "Show the drinks menu to customers" switch in Venue settings | Done |
 | `20261026000005_test_orders.sql` | Test orders without payment (Venue settings → Test orders) | Done |
-| `20261026000006_receipt_emails.sql` | Email receipts, the pub address for receipts, adding a receipt email on the order page (see `docs/receipts-setup.md`) | **Needed for receipts** |
+| `20261026000006_receipt_emails.sql` | Email receipts, the pub address for receipts, adding a receipt email on the order page (see `docs/receipts-setup.md`) | Done |
 
 ## Trying the bar screen with a test order
 Real orders arrive once payments are set up. To see how the bar screen behaves before then,

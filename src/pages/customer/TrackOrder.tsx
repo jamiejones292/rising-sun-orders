@@ -3,8 +3,9 @@ import { Link, useParams } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import { formatPence } from "../../lib/money";
 import { markPaid } from "./history";
+import ReceiptBox, { type ReceiptState } from "./ReceiptBox";
 
-type Tracking = {
+type Tracking = ReceiptState & {
   order_number: number;
   table: string;
   total_pence: number;
@@ -139,6 +140,7 @@ export default function TrackOrder() {
           </div>
         ))}
       </details>
+      {order.payment_status === "paid" && <ReceiptBox token={token} state={order} onChanged={() => void load()} />}
       <Link to="/" className="flex min-h-13.5 items-center justify-center rounded bg-forest font-semibold text-ivory">
         Order more drinks
       </Link>

@@ -103,8 +103,16 @@ architecture changes, and never ask for secrets in chat.
   round on the menu while the basket is empty. Same again re-prices from tonight's menu, leaves
   out sold-out or changed drinks with a note, and keeps the table. The payment step must call
   `saveToHistory` too.
-- Receipt emails are not built yet (planned with payments, via Resend); in test mode the
-  table screen says so under the email box.
+- Receipt emails (migration 006, `docs/receipts-setup.md`): `netlify/functions/send-receipt.ts`
+  takes a tracking token, calls `claim_receipt` (service_role only; atomic, returns null if
+  nothing to send), builds the email with `src/lib/receiptEmail.ts` and sends via Resend;
+  on failure `receipt_failed` (doesn't count). Max 3 receipts per order
+  (`receipt_send_count`). Customers add or change the address on the order page via
+  `set_receipt_email` (paid orders, 7 days). Checkout and the order page both call
+  `requestReceipt` (`src/lib/receipts.ts`); the payment webhook should too. Netlify env:
+  `SUPABASE_SECRET_KEY`, `RESEND_API_KEY` (503 `receipts_not_configured` without them).
+  Locally: bundle the function with `npx rolldown` and run it behind a fake Resend.
+- Email retention cleanup (`email_retention_days`) is not built yet.
 - `/refunds` (`src/pages/RefundPolicy.tsx`) is the agreed refund policy, linked from the confirm
   screen (with the "empty tables can't usually be refunded" line) and the tracking page.
 - `/order/:token` tracking polls `get_order_tracking` every 8 seconds (anon can't

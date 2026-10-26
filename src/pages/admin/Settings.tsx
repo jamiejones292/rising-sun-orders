@@ -306,6 +306,7 @@ function ReceiptsPanel({ settings, onSaved }: { settings: VenueSettings; onSaved
   const [vatNo, setVatNo] = useState(settings.vat_number ?? "");
   const [sender, setSender] = useState(settings.receipt_sender_name);
   const [replyTo, setReplyTo] = useState(settings.receipt_reply_to ?? "");
+  const [address, setAddress] = useState(settings.venue_address ?? "");
   const [retention, setRetention] = useState(String(settings.email_retention_days));
   const [error, setError] = useState<string | null>(null);
 
@@ -321,6 +322,7 @@ function ReceiptsPanel({ settings, onSaved }: { settings: VenueSettings; onSaved
         vat_number: vatNo.trim() || null,
         receipt_sender_name: sender.trim(),
         receipt_reply_to: replyTo.trim() || null,
+        venue_address: address.trim() || null,
         email_retention_days: Number(retention),
       },
       "VAT and receipt settings saved",
@@ -344,6 +346,9 @@ function ReceiptsPanel({ settings, onSaved }: { settings: VenueSettings; onSaved
           <input id="receipt-reply" type="email" className={inputClass} placeholder="hello@yourdomain" value={replyTo} onChange={(e) => setReplyTo(e.target.value)} />
         </Field>
       </div>
+      <Field label="Pub address" hint="printed at the bottom of receipts">
+        <input id="venue-address" className={inputClass} placeholder="Street, Abersychan, Pontypool, NP4 …" value={address} onChange={(e) => setAddress(e.target.value)} />
+      </Field>
       <Field label="Delete customer email addresses after">
         <select id="retention" className={inputClass} value={retention} onChange={(e) => setRetention(e.target.value)}>
           <option value="30">30 days</option>

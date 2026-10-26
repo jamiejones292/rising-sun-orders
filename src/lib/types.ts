@@ -77,6 +77,7 @@ export type VenueSettings = {
   minimum_order_pence: number;
   receipt_sender_name: string;
   receipt_reply_to: string | null;
+  venue_address: string | null;
   email_retention_days: number;
   customer_menu_live: boolean;
   test_orders_until: string | null;

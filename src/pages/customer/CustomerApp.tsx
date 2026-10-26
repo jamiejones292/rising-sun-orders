@@ -4,6 +4,7 @@ import { supabase } from "../../lib/supabase";
 import { formatPence } from "../../lib/money";
 import { orderingWindow } from "../../lib/hours";
 import { priceLine } from "../../lib/pricing";
+import { requestReceipt } from "../../lib/receipts";
 import { paidOnly, readHistory, saveToHistory, verifyHistory, type PastOrder } from "./history";
 import RecentOrders from "./RecentOrders";
 import { useBasket } from "./basket";
@@ -101,6 +102,7 @@ export default function CustomerApp({ preview }: { preview: boolean }) {
       paid: false, // shown once the order page confirms payment
       summary: priced.flatMap((p, i) => (p.ok ? [`${basket.lines[i]!.quantity} × ${p.drinkName}${p.noIce ? " (no ice)" : ""}`] : [])).join(", "),
     });
+    if (details.email) void requestReceipt(placed.tracking_token);
     basket.clear();
     navigate(`/order/${placed.tracking_token}`);
     return null;

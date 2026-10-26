@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import { formatPence } from "../../lib/money";
+import { markPaid } from "./history";
 
 type Tracking = {
   order_number: number;
@@ -34,7 +35,9 @@ export default function TrackOrder() {
     const { data, error } = await supabase.rpc("get_order_tracking", { p_token: token });
     if (error) return setOffline(true);
     setOffline(false);
-    setOrder((data as Tracking | null) ?? null);
+    const found = (data as Tracking | null) ?? null;
+    if (found) markPaid(token, found.payment_status === "paid");
+    setOrder(found);
   }, [token]);
 
   useEffect(() => {

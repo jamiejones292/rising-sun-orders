@@ -96,8 +96,10 @@ architecture changes, and never ask for secrets in chat.
   `venue_settings.test_orders_until` is in the future (owner's 2-hour button), marks orders
   `payment_provider = 'test'`; `admin_delete_test_orders()` clears them. Test mode ignores
   ordering hours in the UI. Bar shows "TEST ORDER · NOT PAID".
-- Recent orders / "Same again" (`history.ts`, `RecentOrders.tsx`): last 10 orders for 30 days
-  in localStorage `rs-orders-v1` (ids only, no accounts). Listed on the welcome screen, last
+- Recent orders / "Same again" (`history.ts`, `RecentOrders.tsx`): last 10 orders for 7 days
+  in localStorage `rs-orders-v1` (ids only, no accounts). Only shown once the server says
+  `payment_status = 'paid'` (set by the order page, re-checked via `get_order_tracking` each
+  time the menu opens; orders the server no longer has are forgotten). Listed on the welcome screen, last
   round on the menu while the basket is empty. Same again re-prices from tonight's menu, leaves
   out sold-out or changed drinks with a note, and keeps the table. The payment step must call
   `saveToHistory` too.

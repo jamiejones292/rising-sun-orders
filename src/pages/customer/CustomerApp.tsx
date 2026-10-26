@@ -4,7 +4,7 @@ import { supabase } from "../../lib/supabase";
 import { formatPence } from "../../lib/money";
 import { orderingWindow } from "../../lib/hours";
 import { priceLine } from "../../lib/pricing";
-import { readHistory, saveToHistory, type PastOrder } from "./history";
+import { paidOnly, readHistory, saveToHistory, verifyHistory, type PastOrder } from "./history";
 import RecentOrders from "./RecentOrders";
 import { useBasket } from "./basket";
 import { useCustomerMenu, type MenuDrink } from "./useCustomerMenu";
@@ -23,13 +23,14 @@ export default function CustomerApp({ preview }: { preview: boolean }) {
   const [category, setCategory] = useState("all");
   const [sheet, setSheet] = useState<{ drink: MenuDrink; index: number | null } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [history, setHistory] = useState<PastOrder[]>(readHistory);
+  const [history, setHistory] = useState<PastOrder[]>(() => paidOnly(readHistory()));
   const [againNote, setAgainNote] = useState<string | null>(null);
   const [details, setDetails] = useState<CheckoutDetails>({ table: basket.table ?? "", ageConfirmed: false, email: "" });
   const navigate = useNavigate();
 
   useEffect(() => {
     document.title = "The Rising Sun Inn · Drinks to your table";
+    void verifyHistory().then((all) => setHistory(paidOnly(all)));
   }, []);
   useEffect(() => {
     if (!toast) return;
@@ -97,6 +98,7 @@ export default function CustomerApp({ preview }: { preview: boolean }) {
       table: details.table,
       totalPence: total,
       lines: basket.lines,
+      paid: false, // shown once the order page confirms payment
       summary: priced.flatMap((p, i) => (p.ok ? [`${basket.lines[i]!.quantity} × ${p.drinkName}${p.noIce ? " (no ice)" : ""}`] : [])).join(", "),
     });
     basket.clear();
@@ -124,7 +126,6 @@ export default function CustomerApp({ preview }: { preview: boolean }) {
       basket.setTable(order.table);
       setDetails((d) => ({ ...d, table: order.table }));
     }
-    setHistory(readHistory());
     setAgainNote(left.length ? `${left.join(". ")}, so we've left ${left.length === 1 ? "it" : "them"} out.` : null);
     if (added) {
       setToast(`Added your round from ${order.orderNumber ? `order #${order.orderNumber}` : "last time"}`);

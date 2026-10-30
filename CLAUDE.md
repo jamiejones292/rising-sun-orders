@@ -49,6 +49,9 @@ architecture changes, and never ask for secrets in chat.
   drinks copies `available`/archived to linked options. Linked by exact name when the migration
   ran. Unlinked options have their own switch (`set_option_available`, same rule as drinks),
   shown under "Mixers & extras" in `StockList`.
+- Drink editor "Mixer" section: "Also offer as a mixer for spirits" + mixer price adds/updates/
+  archives (or restores) this drink's option in the "…mixer…" group, linked to the drink. Saved
+  after `admin_save_drink` with direct updates (not atomic; error says the drink saved).
 - Bar staff stock switches: allowed when the owner turns on "Bar staff can switch drinks
   out of stock" in Venue settings (off by default); a Stock button then appears on the bar
   screen. Adding, editing and archiving drinks stays managers-only.

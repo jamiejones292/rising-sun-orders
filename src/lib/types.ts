@@ -51,7 +51,7 @@ export type ModifierGroup = {
   name: string;
   required: boolean;
   sort_order: number;
-  modifier_options: { id: string; label: string; price_pence: number; archived_at: string | null }[];
+  modifier_options: { id: string; label: string; price_pence: number; archived_at: string | null; sort_order: number; linked_drink_id: string | null }[];
 };
 
 export type VenueTable = {

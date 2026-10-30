@@ -22,7 +22,7 @@ export async function loadMenuData(client: SupabaseClient = supabase): Promise<M
     client.from("drinks").select(DRINK_SELECT).order("sort_order"),
     client
       .from("modifier_groups")
-      .select("id, name, required, sort_order, modifier_options(id, label, price_pence, archived_at)")
+      .select("id, name, required, sort_order, modifier_options(id, label, price_pence, archived_at, sort_order, linked_drink_id)")
       .order("sort_order"),
   ]);
   const err = c.error || d.error || g.error;

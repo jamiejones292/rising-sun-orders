@@ -19,6 +19,14 @@ export function parsePrice(text: string): number | null {
   return pence > 0 ? pence : null;
 }
 
+// Mixer price in pounds ("1.20", "£1", empty for free) to whole pence, or null.
+function parseMixerPrice(text: string): number | null {
+  const t = text.replace(/[£,\s]/g, "");
+  if (t === "") return 0;
+  if (!/^\d{1,3}(\.\d{1,2})?$/.test(t)) return null;
+  return Math.round(parseFloat(t) * 100);
+}
+
 export default function DrinkEditor({
   drink,
   data,
@@ -41,6 +49,12 @@ export default function DrinkEditor({
     data.categories.find((c) => c.id === catId)?.name.toLowerCase().includes("spirit")
       ? data.groups.find((g) => g.name.toLowerCase().includes("mixer"))?.id
       : undefined;
+  // "Also offer as a mixer": this drink's choice in the spirits' mixer list,
+  // linked to the drink so it goes out of stock with it (migration 009).
+  const mixerGroup = data.groups.find((g) => g.name.toLowerCase().includes("mixer"));
+  const myMixer = drink ? mixerGroup?.modifier_options.find((o) => o.linked_drink_id === drink.id && !o.archived_at) : undefined;
+  const [asMixer, setAsMixer] = useState(!!myMixer);
+  const [mixerPrice, setMixerPrice] = useState(myMixer ? (myMixer.price_pence / 100).toFixed(2) : "");
   const [name, setName] = useState(drink?.name ?? "");
   const [categoryId, setCategoryId] = useState(drink?.category_id ?? defaultCategory ?? "");
   const [description, setDescription] = useState(drink?.description ?? "");
@@ -86,8 +100,10 @@ export default function DrinkEditor({
     if (abv.trim() && (isNaN(Number(abv)) || Number(abv) < 0 || Number(abv) > 99.9)) {
       return setError("ABV should be a number like 4.5, or left empty.");
     }
+    const mixerPence = parseMixerPrice(mixerPrice);
+    if (asMixer && mixerPence === null) return setError("Write the mixer price like 1.20, or 0 if it's free.");
     setBusy(true);
-    const { error: err } = await client.rpc("admin_save_drink", {
+    const { data: savedId, error: err } = await client.rpc("admin_save_drink", {
       p_drink: {
         id: drink?.id,
         category_id: categoryId,
@@ -104,9 +120,43 @@ export default function DrinkEditor({
         modifier_group_ids: groupIds,
       },
     });
+    if (err) {
+      setBusy(false);
+      return setError(friendlyError(err));
+    }
+    const mixerErr = await saveMixer((savedId as string | null) ?? drink?.id ?? null, mixerPence ?? 0);
     setBusy(false);
-    if (err) return setError(friendlyError(err));
+    if (mixerErr) return setError(`The drink was saved, but the mixer wasn't: ${friendlyError(mixerErr)}`);
     await onSaved(name.trim(), false);
+  }
+
+  // Add, update or remove this drink's choice in the mixer list.
+  async function saveMixer(drinkId: string | null, pence: number) {
+    if (!mixerGroup || !drinkId) return null;
+    const label = name.trim();
+    if (asMixer && myMixer) {
+      // Keep the mixer's name in step with the drink unless someone renamed it on purpose.
+      const newLabel = myMixer.label === drink?.name ? label : myMixer.label;
+      if (pence === myMixer.price_pence && newLabel === myMixer.label) return null;
+      return (await client.from("modifier_options").update({ price_pence: pence, label: newLabel }).eq("id", myMixer.id)).error;
+    }
+    const old = drink ? mixerGroup.modifier_options.find((o) => o.linked_drink_id === drink.id) : undefined;
+    if (asMixer && old) {
+      // Bring back its earlier mixer; re-saving the link picks up the drink's stock.
+      return (
+        await client.from("modifier_options").update({ archived_at: null, price_pence: pence, label, linked_drink_id: drinkId }).eq("id", old.id)
+      ).error;
+    }
+    if (asMixer) {
+      const sort = Math.max(0, ...mixerGroup.modifier_options.map((o) => o.sort_order)) + 10;
+      return (
+        await client
+          .from("modifier_options")
+          .insert({ group_id: mixerGroup.id, label, price_pence: pence, sort_order: sort, linked_drink_id: drinkId })
+      ).error;
+    }
+    if (myMixer) return (await client.from("modifier_options").update({ archived_at: new Date().toISOString() }).eq("id", myMixer.id)).error;
+    return null;
   }
 
   async function archive() {
@@ -161,6 +211,10 @@ export default function DrinkEditor({
               setCategoryId(e.target.value);
               const mixer = mixerFor(e.target.value);
               if (mixer && !groupIds.includes(mixer)) setGroupIds([...groupIds, mixer]);
+              // A new drink starts in the first category; moving it out of Spirits
+              // takes away the mixer list that was ticked for it automatically.
+              const auto = mixerFor(categoryId);
+              if (!drink && !mixer && auto) setGroupIds(groupIds.filter((id) => id !== auto));
             }}
           >
             {data.categories.map((c) => (
@@ -280,6 +334,36 @@ export default function DrinkEditor({
           </label>
         </div>
       </fieldset>
+
+      {mixerGroup && (
+        <fieldset className="flex flex-col gap-2">
+          <legend className="mb-2 text-sm font-bold text-forest">Mixer</legend>
+          <label className="flex items-start gap-2 text-sm">
+            <input type="checkbox" className="mt-0.5 h-4.5 w-4.5 shrink-0 accent-forest" checked={asMixer} onChange={() => setAsMixer(!asMixer)} />
+            <span>
+              Also offer as a mixer for spirits
+              <span className="block text-xs text-muted">
+                Adds it to "{mixerGroup.name}". It goes out of stock whenever this drink does.
+              </span>
+            </span>
+          </label>
+          {asMixer && (
+            <Field label="Mixer price" hint="added to the spirit's price, usually less than the drink on its own">
+              <span className="relative max-w-[160px]">
+                <span className="absolute top-1/2 left-3 -translate-y-1/2 text-muted">+£</span>
+                <input
+                  id="edit-mixer-price"
+                  className={`${inputClass} pl-8 tabular-nums`}
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  value={mixerPrice}
+                  onChange={(e) => setMixerPrice(e.target.value)}
+                />
+              </span>
+            </Field>
+          )}
+        </fieldset>
+      )}
 
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-2 text-sm font-bold text-forest">

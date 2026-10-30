@@ -7,7 +7,7 @@ const UPDATED = "30 October 2026";
 // Who runs the pub (the data controller) and how to reach them about privacy.
 const CONTROLLER = "TODO_CONTROLLER";
 const CONTACT_EMAIL = "TODO_EMAIL";
-const ADDRESS = "The Rising Sun Inn, Abersychan";
+const ADDRESS = "The Rising Sun Inn, Cwmavon Road, Abersychan, Pontypool NP4 8PP";
 
 const COLLECT: { what: string; why: string }[] = [
   { what: "Your table number and the drinks you order", why: "To make your drinks and bring them to the right table." },

@@ -128,7 +128,7 @@ function BarScreen() {
     setOpenId(null);
     setOpen((orders) => orders.filter((x) => x.id !== o.id));
     void refresh();
-    toast(`Table ${o.table_label} fulfilled. The customer sees "Delivered".`, { undo: () => void reopen(o, true) });
+    toast(`Table ${o.table_label} fulfilled. The customer sees "On its way", then "Delivered" after 5 minutes.`, { undo: () => void reopen(o, true) });
   }
 
   if (current) {

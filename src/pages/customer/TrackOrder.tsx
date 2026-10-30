@@ -17,14 +17,20 @@ type Tracking = ReceiptState & {
   items: { name: string; size: string; quantity: number; line_total_pence: number; no_ice: boolean; extras: string[] }[];
 };
 
+// When the bar taps ORDER FULFILLED the drinks are on their way; the page shows
+// "Delivered" this long afterwards, so staff never need a second tap.
+const DELIVERED_AFTER_MS = 5 * 60_000;
+
 const STAGES = [
-  { key: "paid_at", title: "Order received", detail: "Paid and sent to the bar" },
-  { key: "preparing_at", title: "Preparing", detail: "The bar team is pouring your drinks" },
-  { key: "delivered_at", title: "Delivered", detail: "Enjoy! Iechyd da" },
+  { title: "Order received", detail: "Paid and sent to the bar" },
+  { title: "Preparing", detail: "The bar team is pouring your drinks" },
+  { title: "On its way", detail: "Your drinks are coming to your table" },
+  { title: "Delivered", detail: "Enjoy! Iechyd da" },
 ] as const;
 
-const hm = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" }) : "";
+const hm = (ms: number | null) =>
+  ms ? new Date(ms).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" }) : "";
+const ms = (iso: string | null) => (iso ? new Date(iso).getTime() : null);
 
 // The customer's live order page, opened from the secret link after paying.
 export default function TrackOrder() {
@@ -69,15 +75,20 @@ export default function TrackOrder() {
   }
 
   const status = order.fulfilment_status;
-  const reached = (i: number) =>
-    i === 0 ? !!order.paid_at : i === 1 ? status === "preparing" || status === "ready" || status === "delivered" : status === "delivered";
+  // The time each stage was reached, or null. The 8-second check re-renders the
+  // page, which moves "On its way" on to "Delivered" when the time comes.
+  const fulfilledAt = status === "delivered" ? ms(order.delivered_at) : null;
+  const deliveredAt = fulfilledAt && Date.now() >= fulfilledAt + DELIVERED_AFTER_MS ? fulfilledAt + DELIVERED_AFTER_MS : null;
+  const preparing = status === "preparing" || status === "ready" || status === "delivered";
+  const stageTimes = [ms(order.paid_at), preparing ? (ms(order.preparing_at) ?? fulfilledAt ?? 0) : null, fulfilledAt, deliveredAt];
+  const reached = (i: number) => stageTimes[i] !== null;
   const current = STAGES.findIndex((_, i) => !reached(i));
 
   return (
     <main className="gutter mx-auto flex min-h-dvh max-w-[440px] flex-col gap-5 bg-ivory py-5">
       <div className="flex flex-col items-center gap-2 pt-2 text-center">
         <span className="font-caps text-[0.72rem] tracking-[0.22em] text-gold-ink uppercase">The Rising Sun Inn</span>
-        <h1 className="text-[2.3rem]">{status === "delivered" ? "Your drinks are here" : "Thank you for your order"}</h1>
+        <h1 className="text-[2.3rem]">{deliveredAt ? "Your drinks are here" : fulfilledAt ? "Your drinks are on their way" : "Thank you for your order"}</h1>
       </div>
       {order.payment_status !== "paid" && (
         <p className="rounded border border-alert bg-[#fbede7] p-3 text-alert">
@@ -104,7 +115,7 @@ export default function TrackOrder() {
           const done = reached(i);
           const isCurrent = i === current;
           return (
-            <li key={s.key} className="relative grid grid-cols-[34px_1fr_auto] items-start gap-3 pb-5.5 last:pb-0">
+            <li key={s.title} className="relative grid grid-cols-[34px_1fr_auto] items-start gap-3 pb-5.5 last:pb-0">
               {i < STAGES.length - 1 && <span className={`absolute top-[30px] bottom-0.5 left-4 w-0.5 ${done ? "bg-forest" : "bg-line"}`} />}
               <span
                 className={`relative z-1 grid h-8.5 w-8.5 place-items-center rounded-full border-2 text-sm font-bold ${
@@ -117,7 +128,7 @@ export default function TrackOrder() {
                 <div className={`pt-1 font-semibold ${done || isCurrent ? "text-forest" : "font-medium text-muted"}`}>{s.title}</div>
                 {done && <div className="text-sm text-muted">{s.detail}</div>}
               </div>
-              <span className="pt-1.5 text-sm text-muted tabular-nums">{hm(order[s.key])}</span>
+              <span className="pt-1.5 text-sm text-muted tabular-nums">{hm(stageTimes[i] ?? null)}</span>
             </li>
           );
         })}

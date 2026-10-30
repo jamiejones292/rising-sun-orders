@@ -121,7 +121,14 @@ architecture changes, and never ask for secrets in chat.
   `requestReceipt` (`src/lib/receipts.ts`); the payment webhook should too. Netlify env:
   `SUPABASE_SECRET_KEY`, `RESEND_API_KEY` (503 `receipts_not_configured` without them).
   Locally: bundle the function with `npx rolldown` and run it behind a fake Resend.
-- Email retention cleanup (`email_retention_days`) is not built yet.
+- Email retention: `forget_old_receipt_emails()` (migration 008, service_role only) clears
+  `customer_email` older than `email_retention_days`; `netlify/functions/forget-old-emails.ts`
+  runs it daily (`schedule: "@daily"`, needs `SUPABASE_SECRET_KEY`).
+- `/privacy` (`src/pages/PrivacyPolicy.tsx`) is the privacy notice, linked wherever an email is
+  asked for and from the order page. Keep it in step with what the site stores. No legal
+  name or contact email on it (owner's choice); name the payment provider once chosen.
+- Order page stages: Order received → Preparing → On its way (bar taps ORDER FULFILLED,
+  `delivered_at`) → Delivered, shown 5 minutes after `delivered_at` (`TrackOrder.tsx`).
 - `/refunds` (`src/pages/RefundPolicy.tsx`) is the agreed refund policy, linked from the confirm
   screen (with the "empty tables can't usually be refunded" line) and the tracking page.
 - `/order/:token` tracking polls `get_order_tracking` every 8 seconds (anon can't

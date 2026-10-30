@@ -72,6 +72,7 @@ Run them in date order. Each one is all-or-nothing.
 | `20261026000005_test_orders.sql` | Test orders without payment (Venue settings → Test orders) | Done |
 | `20261026000006_receipt_emails.sql` | Email receipts, the pub address for receipts, adding a receipt email on the order page (see `docs/receipts-setup.md`) | Done |
 | `20261030000007_mixers_on_spirits.sql` | Gives every spirit the "Add a mixer" options | Done |
+| `20261030000008_email_retention.sql` | Deletes receipt email addresses after 90 days (run daily by the site), as the privacy notice promises | Not yet |
 
 ## Trying the bar screen with a test order
 Real orders arrive once payments are set up. To see how the bar screen behaves before then,

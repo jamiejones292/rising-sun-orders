@@ -4,9 +4,8 @@ import { Link } from "react-router-dom";
 // Privacy notice for drinksorder.app (UK GDPR). Describes what the ordering
 // site actually stores: keep it in step with the code when that changes.
 const UPDATED = "30 October 2026";
-// Who runs the pub (the data controller) and how to reach them about privacy.
-const CONTROLLER = "TODO_CONTROLLER";
-const CONTACT_EMAIL = "TODO_EMAIL";
+// How to reach the pub about privacy (it is the data controller). The owner
+// chose not to list a legal name or email address for now.
 const ADDRESS = "The Rising Sun Inn, Cwmavon Road, Abersychan, Pontypool NP4 8PP";
 
 const COLLECT: { what: string; why: string }[] = [
@@ -55,11 +54,8 @@ export default function PrivacyPolicy() {
       <section className="flex flex-col gap-2">
         <h2 className="text-2xl">Who we are</h2>
         <p>
-          {CONTROLLER} runs The Rising Sun Inn and is responsible for your information. You can contact us about privacy at{" "}
-          <a href={`mailto:${CONTACT_EMAIL}`} className="font-semibold text-gold-ink underline underline-offset-2">
-            {CONTACT_EMAIL}
-          </a>
-          , by post to {ADDRESS}, or by speaking to the manager at the bar.
+          The Rising Sun Inn is responsible for your information. You can contact us about privacy by speaking to the manager at the bar, or
+          by post to {ADDRESS}.
         </p>
       </section>
 

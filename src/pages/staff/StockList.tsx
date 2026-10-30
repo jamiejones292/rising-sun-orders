@@ -5,9 +5,14 @@ import { Switch, useToast } from "../../components/ui";
 
 type SizeRow = { id: string; label: string; available: boolean };
 type StockRow = { id: string; name: string; available: boolean; category: string; sizes: SizeRow[] };
+// A mixer or other extra. One linked to a drink (the Coca-Cola mixer to the
+// Coca-Cola drink) follows that drink's switch in the database; the rest have
+// their own switch.
+type ExtraRow = { id: string; label: string; available: boolean; group: string; linkedDrinkId: string | null };
 
 // The out-of-stock switches used on the bar screen: by bar staff (when the owner
-// allows it) and in the manager's admin section. Whole drinks and single sizes.
+// allows it) and in the manager's admin section. Whole drinks, single sizes, and
+// mixers and extras.
 export default function StockList({
   client,
   reloadKey = 0,
@@ -19,6 +24,7 @@ export default function StockList({
 }) {
   const toast = useToast();
   const [stock, setStock] = useState<StockRow[] | null>(null);
+  const [extras, setExtras] = useState<ExtraRow[]>([]);
   const [q, setQ] = useState("");
 
   const load = useCallback(async () => {
@@ -51,6 +57,25 @@ export default function StockList({
           .map((v) => ({ id: v.id, label: v.label, available: v.available })),
       })),
     );
+
+    // Loaded separately so the drink switches still work if this part fails.
+    const { data: opts } = await client
+      .from("modifier_options")
+      .select("id, label, available, sort_order, linked_drink_id, modifier_groups(name, sort_order)")
+      .is("archived_at", null);
+    type Opt = {
+      id: string;
+      label: string;
+      available: boolean;
+      sort_order: number;
+      linked_drink_id: string | null;
+      modifier_groups: { name: string; sort_order: number } | null;
+    };
+    setExtras(
+      ((opts as unknown as Opt[] | null) ?? [])
+        .sort((a, b) => (a.modifier_groups?.sort_order ?? 0) - (b.modifier_groups?.sort_order ?? 0) || a.sort_order - b.sort_order)
+        .map((o) => ({ id: o.id, label: o.label, available: o.available, group: o.modifier_groups?.name ?? "", linkedDrinkId: o.linked_drink_id })),
+    );
   }, [client, toast]);
 
   useEffect(() => {
@@ -62,6 +87,11 @@ export default function StockList({
     return (stock ?? []).filter((s) => !term || s.name.toLowerCase().includes(term) || s.category.toLowerCase().includes(term));
   }, [stock, q]);
 
+  const term = q.trim().toLowerCase();
+  // "No mixer" and the like can't run out, so they get no switch.
+  const ownSwitch = extras.filter((x) => !x.linkedDrinkId && !/^no\b/i.test(x.label) && (!term || x.label.toLowerCase().includes(term) || x.group.toLowerCase().includes(term)));
+  const linkedTo = (drinkId: string) => extras.filter((x) => x.linkedDrinkId === drinkId);
+
   const patch = (id: string, fn: (r: StockRow) => StockRow) => setStock((all) => all && all.map((s) => (s.id === id ? fn(s) : s)));
 
   // Flip the switch straight away, then save; put it back if saving fails.
@@ -72,7 +102,22 @@ export default function StockList({
       patch(row.id, (s) => ({ ...s, available: !available }));
       return toast(friendlyError(error), { error: true });
     }
-    toast(`${row.name} ${available ? "is back on the menu" : "marked out of stock"}`);
+    // The database switches linked mixers with the drink; show that here too.
+    const linked = linkedTo(row.id);
+    setExtras((all) => all.map((x) => (x.linkedDrinkId === row.id ? { ...x, available } : x)));
+    const mixers = linked.length ? `, and as a mixer` : "";
+    toast(`${row.name} ${available ? `is back on the menu${mixers}` : `marked out of stock${mixers}`}`);
+  }
+
+  async function setExtra(x: ExtraRow, available: boolean) {
+    const flip = (value: boolean) => setExtras((all) => all.map((e) => (e.id === x.id ? { ...e, available: value } : e)));
+    flip(available);
+    const { error } = await client.rpc("set_option_available", { p_option_id: x.id, p_available: available });
+    if (error) {
+      flip(!available);
+      return toast(friendlyError(error), { error: true });
+    }
+    toast(`${x.label} ${available ? "available again" : "out of stock"}`);
   }
 
   async function setSize(row: StockRow, size: SizeRow, available: boolean) {
@@ -99,7 +144,7 @@ export default function StockList({
       />
       <div className="max-h-[min(60dvh,32rem)] overflow-y-auto">
         {stock === null && <p className="py-4 text-center text-sm text-muted">Loading drinks…</p>}
-        {stock !== null && visible.length === 0 && <p className="py-4 text-center text-sm text-muted">No drink matches "{q}".</p>}
+        {stock !== null && visible.length === 0 && ownSwitch.length === 0 && <p className="py-4 text-center text-sm text-muted">No drink matches "{q}".</p>}
         {visible.map((s) => (
           <div key={s.id} className="border-t border-vellum py-2">
             <div className="flex items-center justify-between gap-3">
@@ -108,6 +153,7 @@ export default function StockList({
                 <br />
                 <small className="text-muted">
                   {s.category}
+                  {linkedTo(s.id).length > 0 && " · also the mixer"}
                   {!s.available && <b className="ml-1.5 text-bar-red">· Out of stock</b>}
                 </small>
               </span>
@@ -140,8 +186,28 @@ export default function StockList({
             )}
           </div>
         ))}
+        {ownSwitch.length > 0 && (
+          <>
+            <h4 className="mt-3 mb-1 font-sans text-sm font-bold text-forest">Mixers &amp; extras</h4>
+            {ownSwitch.map((x) => (
+              <div key={x.id} className="flex items-center justify-between gap-3 border-t border-vellum py-2">
+                <span className="min-w-0">
+                  <span className={x.available ? "" : "text-muted line-through"}>{x.label}</span>
+                  <br />
+                  <small className="text-muted">
+                    {x.group}
+                    {!x.available && <b className="ml-1.5 text-bar-red">· Out of stock</b>}
+                  </small>
+                </span>
+                <Switch on={x.available} showText={false} label={`${x.label} available`} onChange={(on) => void setExtra(x, on)} />
+              </div>
+            ))}
+          </>
+        )}
       </div>
-      <small className="text-muted">Tap a size to switch just that size off or on.</small>
+      <small className="text-muted">
+        Tap a size to switch just that size off or on. Switching off a soft drink also stops it being chosen as a mixer.
+      </small>
     </>
   );
 }

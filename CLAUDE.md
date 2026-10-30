@@ -45,6 +45,10 @@ architecture changes, and never ask for secrets in chat.
   orders missing from the iPad, minimum order.
 - Every spirit offers "Add a mixer" (migration 007 attached it to existing spirits; the drink
   editor ticks it for drinks new in or moved into a category named like "Spirits").
+- Mixers follow their drink (migration 009): `modifier_options.linked_drink_id`; a trigger on
+  drinks copies `available`/archived to linked options. Linked by exact name when the migration
+  ran. Unlinked options have their own switch (`set_option_available`, same rule as drinks),
+  shown under "Mixers & extras" in `StockList`. No admin editor for options/links yet.
 - Bar staff stock switches: allowed when the owner turns on "Bar staff can switch drinks
   out of stock" in Venue settings (off by default); a Stock button then appears on the bar
   screen. Adding, editing and archiving drinks stays managers-only.

@@ -7,6 +7,7 @@ const MESSAGES: Record<string, string> = {
   needs_a_size: "Add at least one size with a price.",
   drink_not_found: "That drink no longer exists. Refresh the page.",
   size_not_found: "One of the sizes changed elsewhere. Refresh the page and try again.",
+  option_not_found: "That mixer or extra changed elsewhere. Close this and open it again.",
 };
 
 export function friendlyError(err: unknown): string {

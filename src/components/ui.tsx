@@ -131,13 +131,17 @@ export function Drawer({
   children: ReactNode;
 }) {
   const closeRef = useRef<HTMLButtonElement>(null);
+  // Kept in a ref so a parent that re-renders (the bar admin's lock countdown
+  // ticks every second) doesn't re-run the effect and pull focus out of a field.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onCloseRef.current();
     document.addEventListener("keydown", onKey);
     closeRef.current?.focus();
     return () => document.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  }, [open]);
   if (!open) return null;
   return (
     <>

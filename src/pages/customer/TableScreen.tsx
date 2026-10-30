@@ -104,7 +104,12 @@ export default function TableScreen({
           className="h-13 rounded border border-line bg-paper px-3.5 text-[1.05rem]"
         />
         {emailTouched && !emailOk && <p className="text-sm text-alert">Please check your email address, for example name@example.com.</p>}
-        <p className="text-sm text-muted">We'll only use this to send your receipt, never for marketing.</p>
+        <p className="text-sm text-muted">
+          We'll only use this to send your receipt, never for marketing.{" "}
+          <a href="/privacy" target="_blank" rel="noopener" className="font-semibold text-gold-ink underline underline-offset-2">
+            Privacy
+          </a>
+        </p>
 
       </div>
       <div className="fixed bottom-0 left-1/2 z-6 w-full max-w-[440px] -translate-x-1/2 bg-gradient-to-t from-ivory from-70% to-transparent pt-3 pb-[calc(0.9rem+env(safe-area-inset-bottom,0px))] pr-[max(0.9rem,env(safe-area-inset-right,0px))] pl-[max(0.9rem,env(safe-area-inset-left,0px))]">

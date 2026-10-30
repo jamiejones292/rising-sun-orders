@@ -100,7 +100,12 @@ export default function ReceiptBox({ token, state, onChanged }: { token: string;
         </button>
       </div>
       {error && <p className="text-sm text-alert">{error}</p>}
-      <p className="text-sm text-muted">We'll only use this to send your receipt, never for marketing.</p>
+      <p className="text-sm text-muted">
+        We'll only use this to send your receipt, never for marketing.{" "}
+        <a href="/privacy" target="_blank" rel="noopener" className="font-semibold text-gold-ink underline underline-offset-2">
+          Privacy
+        </a>
+      </p>
     </form>
   );
 

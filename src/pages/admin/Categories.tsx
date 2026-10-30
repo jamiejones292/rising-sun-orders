@@ -5,6 +5,7 @@ import { friendlyError } from "../../lib/errors";
 import type { Category } from "../../lib/types";
 import { Button, Panel, Switch, inputClass, useToast } from "../../components/ui";
 import { PageHeader } from "./AdminApp";
+import { isMixersCategory } from "./DrinkEditor";
 
 export default function Categories() {
   const { data, error, reload, setData } = useMenuData();
@@ -53,7 +54,7 @@ export default function Categories() {
     const name = newName.trim();
     if (!name) return;
     const sort = Math.max(0, ...cats.map((c) => c.sort_order)) + 10;
-    const { error: err } = await supabase.from("categories").insert({ name, sort_order: sort });
+    const { error: err } = await supabase.from("categories").insert({ name, sort_order: sort, visible: !isMixersCategory(name) });
     if (err) return toast(friendlyError(err), { error: true });
     setNewName("");
     await reload();
@@ -94,6 +95,8 @@ export default function Categories() {
                   id={`cat-name-${c.id}`}
                   aria-label="Category name"
                   defaultValue={c.name}
+                  // The drink form finds the mixer-only category by this name.
+                  readOnly={isMixersCategory(c.name)}
                   maxLength={60}
                   onBlur={(e) => void rename(c, e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
@@ -103,10 +106,14 @@ export default function Categories() {
                   {data?.drinks.filter((d) => d.category_id === c.id && !d.archived_at).length ?? 0} drinks
                 </div>
               </div>
-              <span className="flex items-center gap-2">
-                <span className="text-xs text-muted">{c.visible ? "Shown" : "Hidden"}</span>
-                <Switch on={c.visible} showText={false} label={`Show ${c.name}`} onChange={(on) => void setVisible(c, on)} />
-              </span>
+              {isMixersCategory(c.name) ? (
+                <span className="max-w-[180px] text-right text-xs text-muted">Mixer-only drinks. Never shown on the menu.</span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  <span className="text-xs text-muted">{c.visible ? "Shown" : "Hidden"}</span>
+                  <Switch on={c.visible} showText={false} label={`Show ${c.name}`} onChange={(on) => void setVisible(c, on)} />
+                </span>
+              )}
             </li>
           ))}
         </ul>

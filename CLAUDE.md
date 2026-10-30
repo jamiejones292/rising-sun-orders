@@ -52,6 +52,10 @@ architecture changes, and never ask for secrets in chat.
 - Drink editor "Mixer" section: "Also offer as a mixer for spirits" + mixer price adds/updates/
   archives (or restores) this drink's option in the "…mixer…" group, linked to the drink. Saved
   after `admin_save_drink` with direct updates (not atomic; error says the drink saved).
+- Mixer-only drinks: category dropdown option "Mixers (mixer only, not on the menu)" puts the
+  drink in a hidden category named exactly "Mixers" (created on first use; `isMixersCategory`),
+  with one hidden "Mixer" size, no option lists, and a linked mixer option. Hidden categories
+  keep it off the menu and unorderable on its own. Categories page locks its name and visibility.
 - Bar staff stock switches: allowed when the owner turns on "Bar staff can switch drinks
   out of stock" in Venue settings (off by default); a Stock button then appears on the bar
   screen. Adding, editing and archiving drinks stays managers-only.

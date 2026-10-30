@@ -35,6 +35,12 @@ export default function DrinkEditor({
   // The bar screen passes its manager sign-in; the admin site uses its own login.
   client?: SupabaseClient;
 }) {
+  // Every spirit offers a mixer (owner's decision): the mixer options to tick
+  // when a drink is new in, or moved into, the Spirits category.
+  const mixerFor = (catId: string) =>
+    data.categories.find((c) => c.id === catId)?.name.toLowerCase().includes("spirit")
+      ? data.groups.find((g) => g.name.toLowerCase().includes("mixer"))?.id
+      : undefined;
   const [name, setName] = useState(drink?.name ?? "");
   const [categoryId, setCategoryId] = useState(drink?.category_id ?? defaultCategory ?? "");
   const [description, setDescription] = useState(drink?.description ?? "");
@@ -45,7 +51,11 @@ export default function DrinkEditor({
   const [vat, setVat] = useState(String(drink?.vat_rate ?? 20));
   const [available, setAvailable] = useState(drink?.available ?? true);
   const [allergens, setAllergens] = useState<string[]>(drink?.allergens ?? []);
-  const [groupIds, setGroupIds] = useState<string[]>(drink?.drink_modifier_groups.map((g) => g.group_id) ?? []);
+  const [groupIds, setGroupIds] = useState<string[]>(() => {
+    if (drink) return drink.drink_modifier_groups.map((g) => g.group_id);
+    const mixer = mixerFor(categoryId);
+    return mixer ? [mixer] : [];
+  });
   const [sizes, setSizes] = useState<SizeRow[]>(
     drink
       ? drink.drink_variants
@@ -143,7 +153,16 @@ export default function DrinkEditor({
       </Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Category">
-          <select id="edit-category" className={inputClass} value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+          <select
+            id="edit-category"
+            className={inputClass}
+            value={categoryId}
+            onChange={(e) => {
+              setCategoryId(e.target.value);
+              const mixer = mixerFor(e.target.value);
+              if (mixer && !groupIds.includes(mixer)) setGroupIds([...groupIds, mixer]);
+            }}
+          >
             {data.categories.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}

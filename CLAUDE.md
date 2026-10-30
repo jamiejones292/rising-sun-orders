@@ -48,7 +48,7 @@ architecture changes, and never ask for secrets in chat.
 - Mixers follow their drink (migration 009): `modifier_options.linked_drink_id`; a trigger on
   drinks copies `available`/archived to linked options. Linked by exact name when the migration
   ran. Unlinked options have their own switch (`set_option_available`, same rule as drinks),
-  shown under "Mixers & extras" in `StockList`. No admin editor for options/links yet.
+  shown under "Mixers & extras" in `StockList`.
 - Bar staff stock switches: allowed when the owner turns on "Bar staff can switch drinks
   out of stock" in Venue settings (off by default); a Stock button then appears on the bar
   screen. Adding, editing and archiving drinks stays managers-only.
@@ -71,6 +71,11 @@ architecture changes, and never ask for secrets in chat.
 ## Admin site (`src/pages/admin`)
 - Lazy-loaded at `/admin`. Owner and managers only (`isManagerRole`); bar accounts are shown
   a "managers only" screen. Tables and Venue settings are owner-only, matching the RLS rules.
+- Mixers & extras (`Extras.tsx`, `/admin/extras`, managers): edit option lists (groups) and
+  their choices: name, extra charge, order, "follows drink" link or own stock switch, remove
+  (archive) and restore, "customers must choose one". Direct updates under the manager RLS
+  rules; needs migration 009 for `linked_drink_id`. Which drinks offer a list is set in the
+  drink editor.
 - Multi-row saves go through `admin_save_drink`, `admin_reorder_categories` and
   `admin_save_opening_hours` (migration 002). Single-field changes use direct updates.
 - Local end-to-end testing: PostgREST (official release binary) on the local test database

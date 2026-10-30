@@ -1,14 +1,15 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createElevatedClient, supabase } from "../../lib/supabase";
 import { staffEmail } from "../../lib/auth";
 import { friendlyError } from "../../lib/errors";
-import type { BarOrder, StaffProfile } from "../../lib/types";
-import { Switch, useToast } from "../../components/ui";
+import { loadMenuData, type MenuData } from "../../lib/adminData";
+import type { BarOrder, Drink, StaffProfile } from "../../lib/types";
+import { useToast } from "../../components/ui";
+import DrinkEditor from "../admin/DrinkEditor";
+import StockList from "./StockList";
 
 const LOCK_AFTER_S = 300;
-
-type StockRow = { id: string; name: string; available: boolean; category: string };
 
 // The small admin section inside the bar screen. A manager signs in with their
 // own staff ID on a separate, unsaved connection, so the bar iPad stays signed
@@ -148,8 +149,10 @@ function AdminPanel({
 }) {
   const toast = useToast();
   const [left, setLeft] = useState(LOCK_AFTER_S);
-  const [stock, setStock] = useState<StockRow[]>([]);
-  const [stockQ, setStockQ] = useState("");
+  const [stockKey, setStockKey] = useState(0);
+  // The drink editor: the menu it needs, and which drink ("new" for a new one).
+  const [menu, setMenu] = useState<MenuData | null>(null);
+  const [editing, setEditing] = useState<Drink | "new" | null>(null);
   const [pw1, setPw1] = useState("");
   const [pw2, setPw2] = useState("");
   const [signOutOthers, setSignOutOthers] = useState(true);
@@ -175,41 +178,23 @@ function AdminPanel({
   }, [toast]);
   const touch = () => setLeft(LOCK_AFTER_S);
 
-  useEffect(() => {
-    void client
-      .from("drinks")
-      .select("id, name, available, archived_at, categories(name, sort_order), sort_order")
-      .is("archived_at", null)
-      .order("sort_order")
-      .then(({ data }) => {
-        type Row = { id: string; name: string; available: boolean; categories: { name: string; sort_order: number } | null; sort_order: number };
-        const rows = ((data as unknown as Row[]) ?? []).sort(
-          (a, b) => (a.categories?.sort_order ?? 0) - (b.categories?.sort_order ?? 0) || a.sort_order - b.sort_order,
-        );
-        setStock(rows.map((r) => ({ id: r.id, name: r.name, available: r.available, category: r.categories?.name ?? "" })));
-      });
-  }, [client]);
-
-  const visibleStock = useMemo(() => {
-    const q = stockQ.trim().toLowerCase();
-    return stock.filter((s) => !q || s.name.toLowerCase().includes(q));
-  }, [stock, stockQ]);
+  async function openEditor(drinkId: string | null) {
+    try {
+      const data = await loadMenuData(client);
+      const drink = drinkId ? data.drinks.find((d) => d.id === drinkId) : undefined;
+      if (drinkId && !drink) return toast("That drink has been archived or removed. Try again.", { error: true });
+      setMenu(data);
+      setEditing(drink ?? "new");
+    } catch (err) {
+      toast(friendlyError(err as Error), { error: true });
+    }
+  }
 
   async function togglePause() {
     const { error } = await client.rpc("set_ordering_paused", { p_paused: !paused });
     if (error) return toast(friendlyError(error), { error: true });
     onChanged();
     toast(paused ? "Online ordering resumed" : "Online ordering paused for every customer");
-  }
-
-  async function setAvailable(row: StockRow, available: boolean) {
-    setStock((all) => all.map((s) => (s.id === row.id ? { ...s, available } : s)));
-    const { error } = await client.rpc("set_drink_available", { p_drink_id: row.id, p_available: available });
-    if (error) {
-      setStock((all) => all.map((s) => (s.id === row.id ? { ...s, available: !available } : s)));
-      return toast(friendlyError(error), { error: true });
-    }
-    toast(`${row.name} ${available ? "is back on the menu" : "marked out of stock"}`);
   }
 
   async function clearProblem(o: BarOrder) {
@@ -298,29 +283,14 @@ function AdminPanel({
         </section>
 
         <section className="flex min-w-0 flex-col gap-1.5 rounded-[10px] border border-line bg-white px-4 py-3.5">
-          <h3 className="m-0 font-sans text-base font-bold text-forest">Out of stock</h3>
-          <small className="text-muted">Switch a drink off and customers can't order it. Single sizes are in the full admin site.</small>
-          <input
-            id="bar-stock-search"
-            type="search"
-            placeholder="Find a drink"
-            aria-label="Find a drink"
-            value={stockQ}
-            onChange={(e) => setStockQ(e.target.value)}
-            className="my-1 h-11 rounded-lg border-2 border-line bg-white px-3"
-          />
-          <div className="max-h-72 overflow-y-auto">
-            {visibleStock.map((s) => (
-              <div key={s.id} className="flex items-center justify-between gap-3 border-t border-vellum py-2">
-                <span className="min-w-0">
-                  {s.name}
-                  <br />
-                  <small className="text-muted">{s.category}</small>
-                </span>
-                <Switch on={s.available} showText={false} label={`${s.name} available`} onChange={(on) => void setAvailable(s, on)} />
-              </div>
-            ))}
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="m-0 font-sans text-base font-bold text-forest">Drinks &amp; stock</h3>
+            <button onClick={() => void openEditor(null)} className="min-h-10 shrink-0 rounded-lg bg-forest px-3.5 text-sm font-extrabold text-ivory">
+              + Add a drink
+            </button>
           </div>
+          <small className="text-muted">Switch a drink off and customers can't order it. Edit a drink to change prices or archive it.</small>
+          <StockList client={client} reloadKey={stockKey} onEdit={(id) => void openEditor(id)} />
         </section>
 
         <section className="flex min-w-0 flex-col gap-2 rounded-[10px] border border-line bg-white px-4 py-3.5">
@@ -374,6 +344,22 @@ function AdminPanel({
           )}
         </section>
       </div>
+
+      {editing && menu && (
+        <DrinkEditor
+          client={client}
+          drink={editing === "new" ? null : editing}
+          data={menu}
+          defaultCategory={menu.categories[0]?.id}
+          onClose={() => setEditing(null)}
+          onSaved={(name, archived) => {
+            const isNew = editing === "new";
+            setEditing(null);
+            setStockKey((k) => k + 1);
+            toast(archived ? `${name} archived. It's off the customer menu.` : isNew ? `${name} added to the menu` : `${name} saved`);
+          }}
+        />
+      )}
     </div>
   );
 }

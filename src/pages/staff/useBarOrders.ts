@@ -13,7 +13,8 @@ const STALE_MS = 45_000;
 
 export type Connection = "live" | "checking" | "offline";
 
-export type BarSettings = { paused: boolean; amber: number; red: number };
+// staffStock: the owner lets bar staff switch drinks out of stock (Venue settings).
+export type BarSettings = { paused: boolean; amber: number; red: number; staffStock: boolean };
 
 // Start of today in the pub's timezone, for the "Fulfilled today" list.
 function startOfTodayLondon(): string {
@@ -32,7 +33,7 @@ const sortItems = (o: BarOrder): BarOrder => ({
 export function useBarOrders(onNewOrders: (orders: BarOrder[]) => void) {
   const [open, setOpen] = useState<BarOrder[]>([]);
   const [done, setDone] = useState<BarOrder[]>([]);
-  const [settings, setSettings] = useState<BarSettings>({ paused: false, amber: 5, red: 10 });
+  const [settings, setSettings] = useState<BarSettings>({ paused: false, amber: 5, red: 10, staffStock: false });
   const [loaded, setLoaded] = useState(false);
   const [lastOkAt, setLastOkAt] = useState(0);
   const [realtime, setRealtime] = useState(false);
@@ -65,7 +66,7 @@ export function useBarOrders(onNewOrders: (orders: BarOrder[]) => void) {
           .gte("delivered_at", startOfTodayLondon())
           .order("delivered_at", { ascending: false })
           .limit(60),
-        supabase.from("venue_settings").select("ordering_paused, wait_amber_minutes, wait_red_minutes").eq("id", 1).single(),
+        supabase.from("venue_settings").select("ordering_paused, wait_amber_minutes, wait_red_minutes, bar_staff_can_toggle_stock").eq("id", 1).single(),
       ]);
       if (o.error || d.error || s.error) throw o.error || d.error || s.error;
       const openOrders = (o.data as unknown as BarOrder[]).map(sortItems);
@@ -77,7 +78,12 @@ export function useBarOrders(onNewOrders: (orders: BarOrder[]) => void) {
       known.current = new Set([...openOrders.map((x) => x.id), ...(known.current ?? [])]);
       setOpen(openOrders);
       setDone((d.data as unknown as BarOrder[]).map(sortItems));
-      setSettings({ paused: s.data.ordering_paused, amber: s.data.wait_amber_minutes, red: s.data.wait_red_minutes });
+      setSettings({
+        paused: s.data.ordering_paused,
+        amber: s.data.wait_amber_minutes,
+        red: s.data.wait_red_minutes,
+        staffStock: s.data.bar_staff_can_toggle_stock,
+      });
       setLastOkAt(Date.now());
       setLoaded(true);
     } catch {

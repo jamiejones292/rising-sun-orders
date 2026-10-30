@@ -270,7 +270,7 @@ function OperationsPanel({ settings, onSaved }: { settings: VenueSettings; onSav
       <div className="flex items-start justify-between gap-3">
         <span className="text-sm">
           <b className="block text-forest">Bar staff can switch drinks out of stock</b>
-          <span className="text-muted">Off means only managers and the owner can.</span>
+          <span className="text-muted">On adds a Stock button to the bar screen for any staff. Off means only managers and the owner can.</span>
         </span>
         <Switch on={barStock} label="Bar staff can switch stock" onChange={setBarStock} />
       </div>

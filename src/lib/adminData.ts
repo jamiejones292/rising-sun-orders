@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
 import type { Category, Drink, ModifierGroup, OpeningHours, VenueSettings, VenueTable } from "./types";
 
@@ -14,30 +15,36 @@ export type MenuData = {
   groups: ModifierGroup[];
 };
 
+// Pass a client to load with a different login (the bar screen's manager sign-in).
+export async function loadMenuData(client: SupabaseClient = supabase): Promise<MenuData> {
+  const [c, d, g] = await Promise.all([
+    client.from("categories").select("id, name, sort_order, visible").order("sort_order"),
+    client.from("drinks").select(DRINK_SELECT).order("sort_order"),
+    client
+      .from("modifier_groups")
+      .select("id, name, required, sort_order, modifier_options(id, label, price_pence, archived_at)")
+      .order("sort_order"),
+  ]);
+  const err = c.error || d.error || g.error;
+  if (err) throw err;
+  const drinks = (d.data as unknown as Drink[]).map((x) => ({
+    ...x,
+    drink_variants: [...x.drink_variants].sort((a, b) => a.sort_order - b.sort_order),
+  }));
+  return { categories: c.data as Category[], drinks, groups: g.data as unknown as ModifierGroup[] };
+}
+
 export function useMenuData() {
   const [data, setData] = useState<MenuData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
-    const [c, d, g] = await Promise.all([
-      supabase.from("categories").select("id, name, sort_order, visible").order("sort_order"),
-      supabase.from("drinks").select(DRINK_SELECT).order("sort_order"),
-      supabase
-        .from("modifier_groups")
-        .select("id, name, required, sort_order, modifier_options(id, label, price_pence, archived_at)")
-        .order("sort_order"),
-    ]);
-    const err = c.error || d.error || g.error;
-    if (err) {
-      setError(err.message);
-      return;
+    try {
+      setData(await loadMenuData());
+      setError(null);
+    } catch (err) {
+      setError((err as Error).message);
     }
-    const drinks = (d.data as unknown as Drink[]).map((x) => ({
-      ...x,
-      drink_variants: [...x.drink_variants].sort((a, b) => a.sort_order - b.sort_order),
-    }));
-    setData({ categories: c.data as Category[], drinks, groups: g.data as unknown as ModifierGroup[] });
-    setError(null);
   }, []);
 
   useEffect(() => {

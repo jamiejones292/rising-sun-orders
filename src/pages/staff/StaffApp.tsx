@@ -6,6 +6,7 @@ import type { BarOrder } from "../../lib/types";
 import { ToastProvider, useToast } from "../../components/ui";
 import BarLogin from "./BarLogin";
 import BarAdmin from "./BarAdmin";
+import StockList from "./StockList";
 import OrderDetail from "./OrderDetail";
 import { FulfilledList, OrderCards, Summary } from "./Board";
 import { useBarOrders } from "./useBarOrders";
@@ -53,6 +54,7 @@ function BarScreen() {
   const [alert, setAlert] = useState<BarOrder | null>(null);
   const [sound, setSound] = useState(soundOn());
   const [admin, setAdmin] = useState(false);
+  const [stock, setStock] = useState(false);
   const [query, setQuery] = useState("");
   const [clock, setClock] = useState(() => hm(new Date().toISOString()));
 
@@ -168,6 +170,11 @@ function BarScreen() {
           >
             {sound ? "Sound on" : "Enable sound"}
           </button>
+          {settings.staffStock && (
+            <button onClick={() => setStock(true)} className="min-h-11.5 rounded-md border-[1.5px] border-gold-soft/45 px-4 text-[0.92rem] font-bold">
+              Stock
+            </button>
+          )}
           <button onClick={() => setAdmin(true)} className="inline-flex min-h-11.5 items-center gap-2 rounded-md border-[1.5px] border-gold-soft/45 px-4 text-[0.92rem] font-bold">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="h-4.5 w-4.5" aria-hidden="true">
               <rect x="5" y="11" width="14" height="10" rx="2" />
@@ -223,6 +230,7 @@ function BarScreen() {
       )}
 
       {alert && <NewOrderAlert order={alert} onOpen={() => openOrder(alert.id)} />}
+      {stock && settings.staffStock && <StockPanel onClose={() => setStock(false)} />}
       {admin && (
         <BarAdmin
           paused={settings.paused}
@@ -231,6 +239,36 @@ function BarScreen() {
           onChanged={() => void refresh()}
         />
       )}
+    </div>
+  );
+}
+
+// Out-of-stock switches for any bar staff, shown only while the owner allows it.
+function StockPanel({ onClose }: { onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return (
+    <div className="fixed inset-0 z-35 flex items-center justify-center bg-[rgba(5,14,10,.72)] px-4 py-[calc(1rem+env(safe-area-inset-top,0px))]">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="bar-stock-title"
+        className="flex max-h-full w-full max-w-[560px] flex-col gap-1.5 overflow-y-auto rounded-xl bg-ivory p-5.5 text-ink"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <h2 id="bar-stock-title" className="text-3xl font-semibold">
+            Out of stock
+          </h2>
+          <button onClick={onClose} aria-label="Close" className="h-11 w-11 shrink-0 rounded-full border-2 border-line text-muted">
+            ✕
+          </button>
+        </div>
+        <small className="text-muted">Switch a drink off and customers can't order it. Switch it back on when it's restocked.</small>
+        <StockList client={supabase} />
+      </div>
     </div>
   );
 }

@@ -41,8 +41,11 @@ architecture changes, and never ask for secrets in chat.
   remote prank orders ever become a problem.
 - QR: plain static code to `https://drinksorder.app` (files in `design/qr/`); no paid
   dynamic QR service, since the domain itself is the redirect point.
-- Still open: tracking stages (proposed Received → Preparing → Delivered), whether bar
-  staff can toggle stock, policy for orders missing from the iPad, minimum order.
+- Still open: tracking stages (proposed Received → Preparing → Delivered), policy for
+  orders missing from the iPad, minimum order.
+- Bar staff stock switches: allowed when the owner turns on "Bar staff can switch drinks
+  out of stock" in Venue settings (off by default); a Stock button then appears on the bar
+  screen. Adding, editing and archiving drinks stays managers-only.
 
 ## Database
 - Supabase project `faioegqaamrvbfzurzun` (London). URL and publishable key are public and
@@ -79,6 +82,10 @@ architecture changes, and never ask for secrets in chat.
 - The admin section signs a manager in on a separate, unsaved client
   (`createElevatedClient`) so the bar session stays put; locks after 5 minutes. Bar password
   changes use the bar session's own `auth.updateUser`, with `signOut({scope: "others"})`.
+- Stock switches (whole drinks and single sizes) are one shared `StockList` component, used
+  by the bar-staff Stock panel (bar session, only while `bar_staff_can_toggle_stock`) and the
+  manager admin section (elevated client), which also opens `DrinkEditor` to add, edit or
+  archive a drink. `DrinkEditor` and `loadMenuData` take an optional client for this.
 - Problems are flagged with `staff_report_problem` / cleared with `staff_clear_problem`
   (migration 003). Refunds wait for the payments stage.
 

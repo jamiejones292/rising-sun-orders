@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "../../lib/supabase";
 import type { MenuData } from "../../lib/adminData";
 import { friendlyError } from "../../lib/errors";
@@ -24,12 +25,15 @@ export default function DrinkEditor({
   defaultCategory,
   onClose,
   onSaved,
+  client = supabase,
 }: {
   drink: Drink | null;
   data: MenuData;
   defaultCategory?: string;
   onClose: () => void;
   onSaved: (name: string, archived: boolean) => void | Promise<void>;
+  // The bar screen passes its manager sign-in; the admin site uses its own login.
+  client?: SupabaseClient;
 }) {
   const [name, setName] = useState(drink?.name ?? "");
   const [categoryId, setCategoryId] = useState(drink?.category_id ?? defaultCategory ?? "");
@@ -73,7 +77,7 @@ export default function DrinkEditor({
       return setError("ABV should be a number like 4.5, or left empty.");
     }
     setBusy(true);
-    const { error: err } = await supabase.rpc("admin_save_drink", {
+    const { error: err } = await client.rpc("admin_save_drink", {
       p_drink: {
         id: drink?.id,
         category_id: categoryId,
@@ -98,7 +102,7 @@ export default function DrinkEditor({
   async function archive() {
     if (!drink) return;
     setBusy(true);
-    const { error: err } = await supabase.from("drinks").update({ archived_at: new Date().toISOString() }).eq("id", drink.id);
+    const { error: err } = await client.from("drinks").update({ archived_at: new Date().toISOString() }).eq("id", drink.id);
     setBusy(false);
     if (err) return setError(friendlyError(err));
     await onSaved(drink.name, true);

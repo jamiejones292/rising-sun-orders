@@ -20,7 +20,9 @@ architecture changes, and never ask for secrets in chat.
   Create orders idempotently from both the provider's webhook and the confirmation page,
   plus a periodic reconciliation sweep.
 - Payment status and fulfilment status are separate fields.
-- Drinks are archived, never deleted.
+- Drinks are archived, never deleted, once ordered. Only never-ordered drinks can be deleted
+  for good (`admin_delete_drink`, migration 011, managers; test orders count, so they must be
+  deleted first). Its linked mixer option is archived, not deleted.
 
 ## Agreed product decisions
 - Tables 1–25, no areas yet; keep an `area` field for later.

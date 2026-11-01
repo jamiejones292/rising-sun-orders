@@ -19,6 +19,7 @@ export default function Drinks() {
   const [cat, setCat] = useState("all");
   const filter = (params.get("filter") as Filter) || "active";
   const [editing, setEditing] = useState<Drink | "new" | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   useEffect(() => {
     if (params.get("new") === "1") {
@@ -75,6 +76,15 @@ export default function Drinks() {
         available ? `${d.name} ${label} available again` : `${d.name} ${label} switched off. Other sizes are still on sale.`,
         { undo: () => void setVariantAvailable(d, vid, !available, true) },
       );
+  }
+
+  // Permanent delete, only for drinks never ordered (admin_delete_drink, migration 011).
+  async function remove(d: Drink) {
+    setConfirmDelete(null);
+    const { error } = await supabase.rpc("admin_delete_drink", { p_drink_id: d.id });
+    if (error) return toast(friendlyError(error), { error: true });
+    await reload();
+    toast(`${d.name} deleted`);
   }
 
   async function restore(d: Drink) {
@@ -202,17 +212,35 @@ export default function Drinks() {
                       </div>
                     ))}
                 </div>
-                <div className="flex items-center gap-2 md:justify-end">
-                  {d.archived_at ? (
-                    <Button variant="ghost" small aria-label={`Restore ${d.name}`} onClick={() => void restore(d)}>
-                      Restore
-                    </Button>
+                <div className="flex flex-wrap items-center gap-2 md:justify-end">
+                  {confirmDelete === d.id ? (
+                    <span className="flex flex-wrap items-center gap-2 rounded border border-alert bg-[#fbeae5] px-2.5 py-1.5 text-sm text-alert">
+                      Delete {d.name} for good? This can't be undone.
+                      <Button variant="danger" small onClick={() => void remove(d)}>
+                        Delete
+                      </Button>
+                      <Button variant="ghost" small onClick={() => setConfirmDelete(null)}>
+                        Keep it
+                      </Button>
+                    </span>
+                  ) : d.archived_at ? (
+                    <>
+                      <Button variant="ghost" small aria-label={`Restore ${d.name}`} onClick={() => void restore(d)}>
+                        Restore
+                      </Button>
+                      <Button variant="danger-ghost" small aria-label={`Delete ${d.name}`} onClick={() => setConfirmDelete(d.id)}>
+                        Delete
+                      </Button>
+                    </>
                   ) : (
                     <>
                       <span className="text-xs text-muted">Whole drink</span>
                       <Switch on={d.available} label={`${d.name} available`} onChange={(on) => void setDrinkAvailable(d, on)} />
                       <Button variant="ghost" small aria-label={`Edit ${d.name}`} onClick={() => setEditing(d)}>
                         Edit
+                      </Button>
+                      <Button variant="danger-ghost" small aria-label={`Delete ${d.name}`} onClick={() => setConfirmDelete(d.id)}>
+                        Delete
                       </Button>
                     </>
                   )}

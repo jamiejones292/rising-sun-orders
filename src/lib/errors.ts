@@ -7,6 +7,8 @@ const MESSAGES: Record<string, string> = {
   needs_a_size: "Add at least one size with a price.",
   drink_not_found: "That drink no longer exists. Refresh the page.",
   size_not_found: "One of the sizes changed elsewhere. Refresh the page and try again.",
+  drink_has_orders: "This drink has been ordered, so it can't be deleted. Archive it instead (Edit, then Archive drink).",
+  drink_in_test_orders: "This drink is in test orders. Delete the test orders first (Venue settings, Test orders), then try again.",
   refunds_not_live: "Card refunds arrive once payments are set up. For now only test orders can be refunded.",
   already_refunded: "This order has already been refunded in full.",
   bad_refund_amount: "That's more than is left to refund on this order.",

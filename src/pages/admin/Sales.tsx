@@ -5,10 +5,10 @@ import { formatPence } from "../../lib/money";
 import { Panel } from "../../components/ui";
 import { PageHeader } from "./AdminApp";
 
-// Sales: what sold most by day, week (Monday to Sunday) or month, in UK time.
+// Sales: what sold most by day, week (Monday to Sunday), month or calendar year, in UK time.
 // The database adds it up (admin_sales_stats, migration 012).
 
-type Period = "day" | "week" | "month";
+type Period = "day" | "week" | "month" | "year";
 type Item = { name: string; size: string; quantity: number; revenue_pence: number };
 type Stats = {
   orders: number;
@@ -43,6 +43,7 @@ function range(period: Period, anchor: Day): { from: Day; to: Day } {
     const monday = anchor - ((d.getUTCDay() + 6) % 7) * DAY_MS;
     return { from: monday, to: monday + 7 * DAY_MS };
   }
+  if (period === "year") return { from: Date.UTC(d.getUTCFullYear(), 0, 1), to: Date.UTC(d.getUTCFullYear() + 1, 0, 1) };
   const first = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1);
   return { from: first, to: Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1) };
 }
@@ -51,6 +52,7 @@ function step(period: Period, anchor: Day, by: 1 | -1): Day {
   const d = new Date(anchor);
   if (period === "day") return anchor + by * DAY_MS;
   if (period === "week") return anchor + by * 7 * DAY_MS;
+  if (period === "year") return Date.UTC(d.getUTCFullYear() + by, 0, 1);
   return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + by, 1);
 }
 
@@ -59,6 +61,7 @@ const fmt = (day: Day, opts: Intl.DateTimeFormatOptions) => new Intl.DateTimeFor
 function label(period: Period, from: Day, to: Day, today: Day): string {
   if (period === "day") return `${from === today ? "Today, " : from === today - DAY_MS ? "Yesterday, " : ""}${fmt(from, { weekday: "short", day: "numeric", month: "short", year: "numeric" })}`;
   if (period === "week") return `${fmt(from, { day: "numeric", month: "short" })} – ${fmt(to - DAY_MS, { day: "numeric", month: "short", year: "numeric" })}`;
+  if (period === "year") return fmt(from, { year: "numeric" });
   return fmt(from, { month: "long", year: "numeric" });
 }
 
@@ -118,11 +121,11 @@ export default function Sales() {
 
   return (
     <>
-      <PageHeader title="Sales" intro="What sold most, by day, week or month (UK time). Orders refunded in full aren't counted." />
+      <PageHeader title="Sales" intro="What sold most, by day, week, month or year (UK time). Orders refunded in full aren't counted." />
 
       <div className="flex flex-wrap items-center gap-2.5">
         <div className="flex rounded-full border border-line bg-paper p-0.5" role="group" aria-label="Period">
-          {(["day", "week", "month"] as Period[]).map((p) => (
+          {(["day", "week", "month", "year"] as Period[]).map((p) => (
             <button
               key={p}
               aria-pressed={period === p}

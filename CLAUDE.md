@@ -85,7 +85,7 @@ architecture changes, and never ask for secrets in chat.
   (archive) and restore, "customers must choose one". Direct updates under the manager RLS
   rules; needs migration 009 for `linked_drink_id`. Which drinks offer a list is set in the
   drink editor.
-- Sales (`Sales.tsx`, `/admin/sales`, managers): day / week (Mon–Sun) / month in UK time,
+- Sales (`Sales.tsx`, `/admin/sales`, managers): day / week (Mon–Sun) / month / year in UK time,
   from `admin_sales_stats(from, to, include_test)` (migration 012): paid orders by `paid_at`
   (part-refunded count, refunded-in-full don't), refunds by refund time, top drinks by name +
   size (combine sizes on the page), mixers & extras. "Include test orders" defaults on until

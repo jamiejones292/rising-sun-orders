@@ -107,6 +107,9 @@ architecture changes, and never ask for secrets in chat.
   them on any reload that started before the save finished, so a stale reload can't flip a
   tick back. OrderDetail ignores a second tap on the same drink within 500 ms, and focuses
   "All orders" only once (re-focusing on every render jumped the page to the top).
+- Order view layout: notices (test, alcohol, refund) are one slim row of labels; drinks in two
+  columns on md+ when 3+; the bottom bar is slim until all are ticked (then ORDER FULFILLED);
+  a gold "↓ n more to pour below" button shows while unticked drinks aren't fully visible.
 - NEW marker: not opened on this iPad (localStorage) and still `fulfilment_status = new`.
 - The admin section signs a manager in on a separate, unsaved client
   (`createElevatedClient`) so the bar session stays put; locks after 5 minutes. Bar password

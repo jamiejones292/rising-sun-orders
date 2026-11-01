@@ -40,6 +40,38 @@ export default function OrderDetail({
 
   // Tick a drink, then bring the next unticked one into view if it's hidden
   // behind the bottom bar or off the screen, so nothing is missed.
+  // How many drinks still to pour are hidden below the bottom bar, for the
+  // "more to pour below" button. Rechecked on scroll, resize and every change.
+  const [below, setBelow] = useState(0);
+  const [barHeight, setBarHeight] = useState(0);
+  const hiddenBelow = () => {
+    const limit = window.innerHeight - (barRef.current?.offsetHeight ?? 0);
+    return toPour(order)
+      .filter((i) => !i.ticked)
+      .map((i) => document.getElementById(`drink-${i.id}`))
+      .filter((el): el is HTMLElement => !!el && el.getBoundingClientRect().bottom > limit + 4);
+  };
+  useEffect(() => {
+    const check = () => {
+      setBarHeight(barRef.current?.offsetHeight ?? 0);
+      setBelow(hiddenBelow().length);
+    };
+    check();
+    window.addEventListener("scroll", check, { passive: true });
+    window.addEventListener("resize", check);
+    return () => {
+      window.removeEventListener("scroll", check);
+      window.removeEventListener("resize", check);
+    };
+  });
+  function showBelow() {
+    const el = hiddenBelow()[0];
+    if (!el) return;
+    const visibleBottom = window.innerHeight - (barRef.current?.offsetHeight ?? 0);
+    const r = el.getBoundingClientRect();
+    window.scrollBy({ top: r.top - (visibleBottom - r.height) / 2, behavior: "smooth" });
+  }
+
   const lastTap = useRef<{ id: string; at: number } | null>(null);
   function tickAndShowNext(itemId: string, ticked: boolean) {
     // Ignore a second tap on the same drink within half a second (an accidental double tap).
@@ -167,24 +199,24 @@ export default function OrderDetail({
         </div>
       </div>
 
-      <div className="gutter mx-auto flex w-full max-w-[900px] flex-1 flex-col gap-3.5 pt-5 pb-48">
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-muted">
-          <span>Tap each drink as you pour it.</span>
-          {alcohol && (
-            <span className="rounded-md bg-bar-amber-soft px-3 py-2 text-sm font-bold text-[#7a4b00]">Contains alcohol: check ID if they look under 25</span>
-          )}
-        </div>
-        {order.payment_method_label?.startsWith("TEST") && (
-          <div className="rounded-md bg-ink px-3.5 py-2.5 text-center font-extrabold tracking-wider text-white">TEST ORDER · NO PAYMENT TAKEN</div>
-        )}
-        {order.problem_reason && (
-          <div className="rounded-md bg-bar-red-soft px-3.5 py-2.5 font-bold text-bar-red">
-            Problem reported: {order.problem_reason}. A manager will sort out any refund.
+      <div className="gutter mx-auto flex w-full max-w-[900px] flex-1 flex-col gap-2.5 pt-3 pb-48">
+        {/* Notices kept to one slim row, so the drinks get the screen. */}
+        {(order.payment_method_label?.startsWith("TEST") || alcohol || order.refunded_pence > 0) && (
+          <div className="flex flex-wrap gap-2 text-sm font-bold">
+            {order.payment_method_label?.startsWith("TEST") && (
+              <span className="rounded-md bg-ink px-3 py-1.5 tracking-wider text-white">TEST ORDER · NO PAYMENT TAKEN</span>
+            )}
+            {alcohol && <span className="rounded-md bg-bar-amber-soft px-3 py-1.5 text-[#7a4b00]">Alcohol: check ID if they look under 25</span>}
+            {order.refunded_pence > 0 && (
+              <span className="rounded-md bg-bar-amber-soft px-3 py-1.5 text-[#7a4b00]">
+                {formatPence(order.refunded_pence)} refunded · ask the manager which drinks to leave out
+              </span>
+            )}
           </div>
         )}
-        {order.refunded_pence > 0 && (
-          <div className="rounded-md bg-bar-amber-soft px-3.5 py-2.5 font-bold text-[#7a4b00]">
-            {formatPence(order.refunded_pence)} of this order has been refunded. Check with the manager which drinks to leave out.
+        {order.problem_reason && (
+          <div className="rounded-md bg-bar-red-soft px-3 py-1.5 text-sm font-bold text-bar-red">
+            Problem reported: {order.problem_reason}. A manager will sort out any refund.
           </div>
         )}
         {/* Two columns on the iPad once there are 3+ drinks, so more fit above the bottom bar. */}
@@ -219,7 +251,7 @@ export default function OrderDetail({
                 </span>
                 <span className={`text-[2rem] font-extrabold tabular-nums ${i.ticked ? "text-white" : "text-forest"}`}>{i.quantity}×</span>
                 <span className="min-w-0">
-                  <span className={`text-xl font-bold ${i.ticked ? "text-white" : "text-forest"}`}>{i.drink_name}</span>
+                  <span className={`text-2xl font-bold ${i.ticked ? "text-white" : "text-forest"}`}>{i.drink_name}</span>
                   {i.no_ice && (
                     <span className={`ml-1.5 inline-block rounded-sm px-2 py-0.5 align-[2px] text-sm font-extrabold tracking-wider ${i.ticked ? "bg-white text-bar-ok" : "bg-ink text-white"}`}>
                       NO ICE
@@ -318,15 +350,25 @@ export default function OrderDetail({
         )}
       </div>
 
-      <div ref={barRef} className="gutter fixed inset-x-0 bottom-0 z-7 border-t-2 border-line bg-ivory pt-3.5 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
-        <div className="mx-auto flex max-w-[900px] flex-col gap-2.5">
+      {below > 0 && (
+        <button
+          onClick={showBelow}
+          style={{ bottom: barHeight + 12 }}
+          className="fixed left-1/2 z-8 flex min-h-12 -translate-x-1/2 items-center gap-2 rounded-full bg-gold-bright px-5 text-lg font-extrabold text-white shadow-[0_8px_22px_rgba(0,0,0,.3)]"
+        >
+          ↓ {below} more to pour below
+        </button>
+      )}
+
+      <div ref={barRef} className="gutter fixed inset-x-0 bottom-0 z-7 border-t-2 border-line bg-ivory pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
+        <div className="mx-auto flex max-w-[900px] flex-col gap-2">
           <div className="flex items-center gap-3 font-extrabold text-forest">
             <span className="h-3 flex-1 overflow-hidden rounded-md bg-vellum">
               <i className="block h-full rounded-md bg-bar-ok" style={{ width: `${(t / n) * 100}%` }} />
             </span>
             <span className="tabular-nums">
-              {t} of {n} ticked
-              {gone > 0 && ` · ${gone} out of stock`}
+              {n === 0 ? "Every drink is out of stock. A manager will refund this order." : `${t} of ${n} ticked`}
+              {n > 0 && gone > 0 && ` · ${gone} out of stock`}
             </span>
           </div>
           {all ? (
@@ -339,13 +381,7 @@ export default function OrderDetail({
               {CHECK}
               {busy ? "SAVING…" : "ORDER FULFILLED"}
             </button>
-          ) : (
-            <div className="flex min-h-18 items-center justify-center rounded-[10px] border-2 border-dashed border-line px-4 text-center font-bold text-muted">
-              {n === 0
-                ? "Every drink is out of stock. A manager will refund this order."
-                : `Tick every drink to finish this order (${n - t} to go)`}
-            </div>
-          )}
+          ) : null}
           <div className="flex flex-wrap justify-center gap-x-4.5 gap-y-2 [&_button]:p-1.5 [&_button]:font-semibold [&_button]:text-muted [&_button]:underline [&_button]:underline-offset-3">
             {t > 0 && (
               <button

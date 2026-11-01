@@ -58,12 +58,17 @@ export default function OrderDetail({
   const all = n > 0 && t === n;
   const alcohol = order.order_items.some((i) => i.drinks?.contains_alcohol);
 
+  // Focus "All orders" once when the order opens. onBack is kept in a ref:
+  // it's a new function on every render, and re-running this after each tick
+  // would focus the button again and jump the page back to the top.
+  const onBackRef = useRef(onBack);
+  onBackRef.current = onBack;
   useEffect(() => {
-    backRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onBack();
+    backRef.current?.focus({ preventScroll: true });
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onBackRef.current();
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [onBack]);
+  }, []);
 
   useEffect(() => {
     if (all) fulfilRef.current?.focus();

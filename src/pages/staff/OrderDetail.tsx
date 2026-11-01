@@ -36,6 +36,22 @@ export default function OrderDetail({
   const [busy, setBusy] = useState(false);
   const backRef = useRef<HTMLButtonElement>(null);
   const fulfilRef = useRef<HTMLButtonElement>(null);
+  const barRef = useRef<HTMLDivElement>(null);
+
+  // Tick a drink, then bring the next unticked one into view if it's hidden
+  // behind the bottom bar or off the screen, so nothing is missed.
+  function tickAndShowNext(itemId: string, ticked: boolean) {
+    void onTick(itemId, ticked);
+    if (!ticked) return;
+    const next = toPour(order).find((i) => !i.ticked && i.id !== itemId);
+    const el = next && document.getElementById(`drink-${next.id}`);
+    if (!el) return;
+    const visibleBottom = window.innerHeight - (barRef.current?.offsetHeight ?? 0);
+    const r = el.getBoundingClientRect();
+    if (r.bottom > visibleBottom || r.top < 0) {
+      window.scrollBy({ top: r.top - (visibleBottom - r.height) / 2, behavior: "smooth" });
+    }
+  }
   const t = tickedCount(order);
   const n = toPour(order).length;
   const gone = order.order_items.length - n;
@@ -161,7 +177,8 @@ export default function OrderDetail({
             {formatPence(order.refunded_pence)} of this order has been refunded. Check with the manager which drinks to leave out.
           </div>
         )}
-        <ul className="flex flex-col gap-2.5">
+        {/* Two columns on the iPad once there are 3+ drinks, so more fit above the bottom bar. */}
+        <ul className={`grid gap-2.5 ${order.order_items.length > 2 ? "md:grid-cols-2" : ""}`}>
           {order.order_items.map((i) =>
             i.out_of_stock ? (
               <li key={i.id}>
@@ -178,11 +195,11 @@ export default function OrderDetail({
                 </div>
               </li>
             ) : (
-            <li key={i.id}>
+            <li key={i.id} id={`drink-${i.id}`}>
               <button
                 role="checkbox"
                 aria-checked={i.ticked}
-                onClick={() => void onTick(i.id, !i.ticked)}
+                onClick={() => tickAndShowNext(i.id, !i.ticked)}
                 className={`grid min-h-22 w-full grid-cols-[56px_64px_minmax(0,1fr)] items-center gap-3.5 rounded-[10px] border-2 p-4 text-left transition-colors duration-75 ${
                   i.ticked ? "border-bar-ok bg-bar-ok" : "border-line bg-white"
                 }`}
@@ -291,7 +308,7 @@ export default function OrderDetail({
         )}
       </div>
 
-      <div className="gutter fixed inset-x-0 bottom-0 z-7 border-t-2 border-line bg-ivory pt-3.5 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
+      <div ref={barRef} className="gutter fixed inset-x-0 bottom-0 z-7 border-t-2 border-line bg-ivory pt-3.5 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
         <div className="mx-auto flex max-w-[900px] flex-col gap-2.5">
           <div className="flex items-center gap-3 font-extrabold text-forest">
             <span className="h-3 flex-1 overflow-hidden rounded-md bg-vellum">

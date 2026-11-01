@@ -23,8 +23,10 @@ export default function CustomerRoot() {
   const [live, setLive] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (!params.has("preview")) return;
-    const on = params.get("preview") !== "off";
+    // Accept small typos like "?preview." or "?Preview" from a typed link.
+    const key = [...params.keys()].find((k) => k.replace(/[^a-z]/gi, "").toLowerCase() === "preview");
+    if (!key) return;
+    const on = !/^off\W*$/i.test(params.get(key) ?? "");
     try {
       if (on) localStorage.setItem(PREVIEW_KEY, "1");
       else localStorage.removeItem(PREVIEW_KEY);
@@ -32,7 +34,7 @@ export default function CustomerRoot() {
       // private browsing: preview lasts for this visit only
     }
     setPreview(on);
-    params.delete("preview");
+    params.delete(key);
     setParams(params, { replace: true });
   }, [params, setParams]);
 

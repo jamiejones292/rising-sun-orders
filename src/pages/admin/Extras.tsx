@@ -22,13 +22,13 @@ type Option = {
   linked_drink_id: string | null;
 };
 type Group = { id: string; name: string; required: boolean; sort_order: number };
-type DrinkRef = { id: string; name: string; available: boolean; category: string; categorySort: number };
+type DrinkRef = { id: string; name: string; available: boolean; category: string; categorySort: number; archived: boolean };
 
 // Extra charge typed as pounds ("1.20", "£1", "0"), to whole pence. Free is allowed.
 function parseExtraPrice(text: string): number | null {
   const t = text.replace(/[£,\s]/g, "");
   if (t === "") return 0;
-  if (!/^\d{1,3}(\.\d{1,2})?$/.test(t)) return null;
+  if (!/^(\d{1,3}(\.\d{1,2})?|\.\d{1,2})$/.test(t)) return null;
   return Math.round(parseFloat(t) * 100);
 }
 
@@ -45,7 +45,8 @@ export default function Extras() {
     const [g, o, d, u] = await Promise.all([
       supabase.from("modifier_groups").select("id, name, required, sort_order").order("sort_order"),
       supabase.from("modifier_options").select("id, group_id, label, price_pence, available, sort_order, archived_at, linked_drink_id").order("sort_order"),
-      supabase.from("drinks").select("id, name, available, sort_order, categories(name, sort_order)").is("archived_at", null).order("sort_order"),
+      // Archived drinks too, so a choice still linked to one shows as linked.
+      supabase.from("drinks").select("id, name, available, sort_order, archived_at, categories(name, sort_order)").order("sort_order"),
       supabase.from("drink_modifier_groups").select("group_id, drinks(archived_at)"),
     ]);
     const err = g.error || o.error || d.error || u.error;
@@ -53,10 +54,17 @@ export default function Extras() {
       // Before database update 009 there's no link column yet.
       return setError(/linked_drink_id/.test(err.message) ? "Run database update 009 (linked mixers) in Supabase first, then refresh this page." : err.message);
     }
-    type D = { id: string; name: string; available: boolean; sort_order: number; categories: { name: string; sort_order: number } | null };
+    type D = { id: string; name: string; available: boolean; sort_order: number; archived_at: string | null; categories: { name: string; sort_order: number } | null };
     setDrinks(
       (d.data as unknown as D[])
-        .map((x) => ({ id: x.id, name: x.name, available: x.available, category: x.categories?.name ?? "", categorySort: x.categories?.sort_order ?? 0 }))
+        .map((x) => ({
+          id: x.id,
+          name: x.name,
+          available: x.available,
+          archived: !!x.archived_at,
+          category: x.categories?.name ?? "",
+          categorySort: x.categories?.sort_order ?? 0,
+        }))
         .sort((a, b) => a.categorySort - b.categorySort || a.name.localeCompare(b.name)),
     );
     const counts: Record<string, number> = {};
@@ -225,13 +233,24 @@ function GroupPanel({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0 flex-[1_1_260px]">
           <input
+            key={`name-${group.name}`}
             id={`group-name-${group.id}`}
             aria-label="List name"
             defaultValue={group.name}
             maxLength={60}
             onBlur={(e) => {
               const name = e.target.value.trim();
-              if (name && name !== group.name) void onSaveGroup(group, { name }, "List renamed");
+              if (!name || name === group.name) {
+                e.target.value = group.name;
+                return;
+              }
+              // The drink form finds the mixer list by the word "mixer" in its name.
+              if (/mixer/i.test(group.name) && !/mixer/i.test(name) &&
+                  !window.confirm(`Keep the word "mixer" in this list's name? The drink form uses it to find the mixer list for spirits. Rename anyway?`)) {
+                e.target.value = group.name;
+                return;
+              }
+              void onSaveGroup(group, { name }, "List renamed");
             }}
             onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
             className={`${inputClass} max-w-[340px] font-display text-2xl font-semibold`}
@@ -280,6 +299,7 @@ function GroupPanel({
                 </button>
               </span>
               <input
+                key={`label-${o.label}`} // re-shows the saved name if a save fails
                 id={`opt-label-${o.id}`}
                 aria-label="Choice name"
                 defaultValue={o.label}
@@ -325,7 +345,8 @@ function GroupPanel({
                 className={`${inputClass} col-start-2 sm:col-start-auto`}
               >
                 <option value="">Own stock switch</option>
-                <DrinkOptions drinks={drinks} prefix="Follows " />
+                {linked?.archived && <option value={linked.id}>Follows {linked.name} (archived)</option>}
+                <DrinkOptions drinks={drinks.filter((x) => !x.archived)} prefix="Follows " />
               </select>
               <span className="col-start-2 flex items-center gap-2 sm:col-start-auto">
                 {linked ? (
@@ -367,7 +388,7 @@ function GroupPanel({
             onChange={(e) => {
               setLabel(e.target.value);
               // Suggest following the drink with the same name.
-              const match = drinks.find((d) => d.name.trim().toLowerCase() === e.target.value.trim().toLowerCase());
+              const match = drinks.find((d) => !d.archived && d.name.trim().toLowerCase() === e.target.value.trim().toLowerCase());
               if (match) setLink(match.id);
             }}
             className={inputClass}
@@ -386,7 +407,7 @@ function GroupPanel({
           </span>
           <select id={`new-opt-link-${group.id}`} aria-label="Stock for the new choice" value={link} onChange={(e) => setLink(e.target.value)} className={inputClass}>
             <option value="">Own stock switch</option>
-            <DrinkOptions drinks={drinks} prefix="Follows " />
+            <DrinkOptions drinks={drinks.filter((x) => !x.archived)} prefix="Follows " />
           </select>
           <Button disabled={!label.trim()}>+ Add</Button>
         </div>

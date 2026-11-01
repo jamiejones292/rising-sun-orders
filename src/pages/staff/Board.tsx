@@ -14,7 +14,7 @@ export function Summary({ orders }: { orders: BarOrder[] }) {
         <b className="text-2xl font-extrabold text-ivory tabular-nums">{orders.length}</b> order{orders.length === 1 ? "" : "s"} waiting
       </span>
       <span>
-        <b className="text-2xl font-extrabold text-ivory tabular-nums">{orders.reduce((s, o) => s + drinkCount(o), 0)}</b> drinks to pour
+        <b className="text-2xl font-extrabold text-ivory tabular-nums">{orders.reduce((s, o) => s + toPour(o).filter((i) => !i.ticked).reduce((q, i) => q + i.quantity, 0), 0)}</b> drinks to pour
       </span>
       <span>
         Oldest: <b className="text-2xl font-extrabold text-ivory tabular-nums">{waitText(oldest)}</b> · Table {oldest.table_label}
@@ -117,7 +117,7 @@ export function OrderCards({
             </ul>
             <div className="flex items-center gap-2.5 border-t border-line px-4 pt-2.5 pb-3.5 text-sm font-bold text-muted">
               <span className="h-2 flex-1 overflow-hidden rounded bg-vellum">
-                <i className="block h-full rounded bg-bar-ok" style={{ width: `${(t / n) * 100}%` }} />
+                <i className="block h-full rounded bg-bar-ok" style={{ width: `${n ? (t / n) * 100 : 0}%` }} />
               </span>
               <span className="tabular-nums">
                 {t} of {n} ticked

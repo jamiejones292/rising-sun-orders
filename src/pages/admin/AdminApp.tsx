@@ -46,11 +46,14 @@ export default function AdminApp() {
 }
 
 function AdminGate() {
-  const { loading, session, profile, signOut } = useAuth();
+  const { loading, session, profile, offline, signOut } = useAuth();
   if (loading) {
     return <div className="flex min-h-dvh items-center justify-center bg-forest text-gold-soft">Loading…</div>;
   }
   if (!session) return <AdminLogin />;
+  if (!profile && offline) {
+    return <div className="flex min-h-dvh items-center justify-center bg-forest px-6 text-center text-gold-soft">Can't reach the server. Trying again…</div>;
+  }
   if (!isManagerRole(profile)) {
     return (
       <main className="gutter flex min-h-dvh items-center justify-center bg-forest">

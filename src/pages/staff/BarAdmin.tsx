@@ -156,6 +156,8 @@ function AdminPanel({
   // The drink editor: the menu it needs, and which drink ("new" for a new one).
   const [menu, setMenu] = useState<MenuData | null>(null);
   const [editing, setEditing] = useState<Drink | "new" | null>(null);
+  const formOpen = useRef(false);
+  formOpen.current = !!editing || !!refunding;
   const [pw1, setPw1] = useState("");
   const [pw2, setPw2] = useState("");
   const [signOutOthers, setSignOutOthers] = useState(true);
@@ -168,6 +170,8 @@ function AdminPanel({
   useEffect(() => {
     const id = window.setInterval(() => {
       setLeft((s) => {
+        // Never lock in the middle of a drink edit or a refund.
+        if (formOpen.current) return LOCK_AFTER_S;
         if (s <= 1) {
           window.clearInterval(id);
           toast("Admin locked");

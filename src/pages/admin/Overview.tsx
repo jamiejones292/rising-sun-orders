@@ -8,7 +8,7 @@ import { Button, Panel, useToast } from "../../components/ui";
 import RefundPanel from "../staff/RefundPanel";
 import OrderingCard from "./OrderingCard";
 import { PageHeader } from "./AdminApp";
-import { isMixersCategory } from "./DrinkEditor";
+import { isMixerOnlyCategory } from "./DrinkEditor";
 
 export default function Overview() {
   const { profile } = useAuth();
@@ -19,14 +19,15 @@ export default function Overview() {
 
   // The "Mixers" category is hidden on purpose (mixer-only drinks), so it isn't
   // counted as a menu category or flagged; its drinks still show if out of stock.
-  const menuCats = data?.categories.filter((c) => !isMixersCategory(c.name)) ?? [];
-  const mixerOnly = new Set(data?.categories.filter((c) => isMixersCategory(c.name)).map((c) => c.id));
+  const menuCats = data?.categories.filter((c) => !isMixerOnlyCategory(c)) ?? [];
+  const mixerOnly = new Set(data?.categories.filter(isMixerOnlyCategory).map((c) => c.id));
   const live = data?.drinks.filter((d) => !d.archived_at) ?? [];
   const onMenu = live.filter((d) => !mixerOnly.has(d.category_id));
   const outOfStock = live.filter((d) => !d.available || d.drink_variants.some((v) => !v.archived_at && !v.available));
   const tablesOff = venue.tables.filter((t) => !t.active);
   const hiddenCats = menuCats.filter((c) => !c.visible);
-  const greeting = new Date().getHours() < 12 ? "Bore da" : new Date().getHours() < 18 ? "Prynhawn da" : "Noswaith dda";
+  const hour = Number(new Intl.DateTimeFormat("en-GB", { hour: "numeric", hourCycle: "h23", timeZone: "Europe/London" }).format(new Date()));
+  const greeting = hour < 12 ? "Bore da" : hour < 18 ? "Prynhawn da" : "Noswaith dda";
 
   return (
     <>
@@ -114,7 +115,8 @@ function useProblemOrders() {
     void reload();
     const id = window.setInterval(() => void reload(), 30_000);
     const channel = supabase
-      .channel("admin-problems")
+      // A fresh name each time: reusing one can pick up the old channel as it closes.
+      .channel(`admin-problems-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => void reload())
       .subscribe();
     return () => {

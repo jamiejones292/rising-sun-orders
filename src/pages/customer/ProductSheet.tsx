@@ -24,8 +24,15 @@ export default function ProductSheet({
   const [options, setOptions] = useState<Record<string, string>>(
     editing?.options ??
       Object.fromEntries(
+        // Required choices start on the first available one; optional ones (like
+        // "Add a mixer") start on "No mixer" if there is one, never a paid extra.
         drink.groups
-          .map((g) => [g.id, g.options.find((o) => o.available)?.id])
+          .map((g) => [
+            g.id,
+            (g.required
+              ? g.options.find((o) => o.available)
+              : g.options.find((o) => o.available && o.price_pence === 0 && /^no\b/i.test(o.label)))?.id,
+          ])
           .filter((x): x is [string, string] => !!x[1]),
       ),
   );
@@ -34,12 +41,16 @@ export default function ProductSheet({
   const closeRef = useRef<HTMLButtonElement>(null);
   const category = menu.categories.find((c) => c.id === drink.category_id)?.name;
 
+  // Focus the close button once on opening. onClose is kept in a ref: it's a
+  // new function each render, and the menu reloads every minute.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   useEffect(() => {
     closeRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onCloseRef.current();
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, []);
 
   const line: BasketLine = { drinkId: drink.id, variantId, options, noIce, quantity: qty };
   const priced = priceLine({ drinks: menu.drinks }, line);
@@ -51,7 +62,7 @@ export default function ProductSheet({
         role="dialog"
         aria-modal="true"
         aria-labelledby="sheet-name"
-        className="fixed bottom-0 left-1/2 z-21 flex max-h-[88vh] w-full max-w-[440px] -translate-x-1/2 flex-col rounded-t-2xl border-t-[3px] border-gold bg-paper"
+        className="fixed bottom-0 left-1/2 z-21 flex max-h-[88dvh] w-full max-w-[440px] -translate-x-1/2 flex-col rounded-t-2xl border-t-[3px] border-gold bg-paper"
       >
         <button
           ref={closeRef}

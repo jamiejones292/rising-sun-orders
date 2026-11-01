@@ -76,7 +76,7 @@ export function buildReceiptEmail(r: ReceiptData, siteUrl: string) {
     v.vat_registered && v.vat_number ? `VAT reg. no. ${v.vat_number}` : "",
     `Questions about this order? Speak to the bar team and quote #${r.order_number}${v.reply_to ? ", or reply to this email" : ""}.`,
     v.reply_to ? "" : "Please don't reply to this email: replies aren't read.",
-    "Any refund is confirmed in a separate email.",
+    "Any refund is shown on your order page and goes back to the card or wallet you paid with.",
   ].filter(Boolean);
 
   const row = (left: string, right: string, style = "") =>

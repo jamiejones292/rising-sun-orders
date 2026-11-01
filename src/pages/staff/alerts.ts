@@ -29,6 +29,8 @@ export function disableSound() {
 
 export function chime() {
   if (!audio) return;
+  // iPads pause sound when the screen sleeps; wake it before playing.
+  if (audio.state !== "running") void audio.resume();
   const t = audio.currentTime;
   for (const [freq, delay] of [
     [880, 0],
@@ -56,9 +58,18 @@ export async function keepAwake() {
   }
 }
 
-// The browser drops the wake lock when the screen is hidden; ask again on return.
+// The browser drops the wake lock and pauses sound when the screen is hidden or
+// locked; ask again on return, and on any tap (iPads only allow sound to resume
+// after a touch).
+function rewake() {
+  if (audio && audio.state !== "running") void audio.resume();
+  if (wakeLock || audio) void keepAwake();
+}
 if (typeof document !== "undefined") {
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible" && wakeLock) void keepAwake();
+    if (document.visibilityState === "visible") rewake();
+  });
+  document.addEventListener("pointerdown", () => {
+    if (audio && audio.state !== "running") rewake();
   });
 }

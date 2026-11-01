@@ -5,7 +5,7 @@ import { friendlyError } from "../../lib/errors";
 import type { Category } from "../../lib/types";
 import { Button, Panel, Switch, inputClass, useToast } from "../../components/ui";
 import { PageHeader } from "./AdminApp";
-import { isMixersCategory } from "./DrinkEditor";
+import { isMixerOnlyCategory, isMixersCategory } from "./DrinkEditor";
 
 export default function Categories() {
   const { data, error, reload, setData } = useMenuData();
@@ -27,11 +27,23 @@ export default function Categories() {
     }
   }
 
-  async function rename(c: Category, name: string) {
-    const trimmed = name.trim();
-    if (!trimmed || trimmed === c.name) return;
+  // "Mixers" is kept for the hidden mixer-only category, which the drink form
+  // creates when it's first needed.
+  const RESERVED = "“Mixers” is kept for mixer-only drinks. Choose another name.";
+
+  async function rename(c: Category, input: HTMLInputElement) {
+    const trimmed = input.value.trim();
+    if (!trimmed || trimmed === c.name) {
+      input.value = c.name;
+      return;
+    }
+    if (isMixersCategory(trimmed)) {
+      input.value = c.name;
+      return toast(RESERVED, { error: true });
+    }
     const { error: err } = await supabase.from("categories").update({ name: trimmed }).eq("id", c.id);
     if (err) {
+      input.value = c.name;
       toast(friendlyError(err), { error: true });
       return reload();
     }
@@ -53,8 +65,9 @@ export default function Categories() {
     e.preventDefault();
     const name = newName.trim();
     if (!name) return;
+    if (isMixersCategory(name)) return toast(RESERVED, { error: true });
     const sort = Math.max(0, ...cats.map((c) => c.sort_order)) + 10;
-    const { error: err } = await supabase.from("categories").insert({ name, sort_order: sort, visible: !isMixersCategory(name) });
+    const { error: err } = await supabase.from("categories").insert({ name, sort_order: sort });
     if (err) return toast(friendlyError(err), { error: true });
     setNewName("");
     await reload();
@@ -96,9 +109,9 @@ export default function Categories() {
                   aria-label="Category name"
                   defaultValue={c.name}
                   // The drink form finds the mixer-only category by this name.
-                  readOnly={isMixersCategory(c.name)}
+                  readOnly={isMixerOnlyCategory(c)}
                   maxLength={60}
-                  onBlur={(e) => void rename(c, e.target.value)}
+                  onBlur={(e) => void rename(c, e.target)}
                   onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
                   className={`${inputClass} max-w-[340px]`}
                 />
@@ -106,7 +119,7 @@ export default function Categories() {
                   {data?.drinks.filter((d) => d.category_id === c.id && !d.archived_at).length ?? 0} drinks
                 </div>
               </div>
-              {isMixersCategory(c.name) ? (
+              {isMixerOnlyCategory(c) ? (
                 <span className="max-w-[180px] text-right text-xs text-muted">Mixer-only drinks. Never shown on the menu.</span>
               ) : (
                 <span className="flex items-center gap-2">

@@ -56,7 +56,7 @@ export default function RefundPolicy() {
         </p>
         <p>
           Refunds go back to the card or wallet you paid with (Apple Pay, Google Pay or card). They usually show within 3 to 5 working days,
-          depending on your bank. If you gave us your email address, we'll email you to confirm the refund.
+          depending on your bank. You can also see any refund on your order page.
         </p>
         <p>We can't give refunds in cash for orders paid on the app.</p>
       </section>

@@ -16,13 +16,24 @@ export type Connection = "live" | "checking" | "offline";
 // staffStock: the owner lets bar staff switch drinks out of stock (Venue settings).
 export type BarSettings = { paused: boolean; amber: number; red: number; staffStock: boolean };
 
-// Start of today in the pub's timezone, for the "Fulfilled today" list.
+// Start of the trading day in the pub's timezone (6am, so a late night's
+// orders stay together after midnight), for the "Fulfilled today" list.
+const DAY_STARTS_AT = 6;
 function startOfTodayLondon(): string {
   const now = new Date();
   const london = new Date(now.toLocaleString("en-US", { timeZone: "Europe/London" }));
   const offset = now.getTime() - london.getTime();
-  london.setHours(0, 0, 0, 0);
+  if (london.getHours() < DAY_STARTS_AT) london.setDate(london.getDate() - 1);
+  london.setHours(DAY_STARTS_AT, 0, 0, 0);
   return new Date(london.getTime() + offset).toISOString();
+}
+
+// A reload that never answers would block every later one, so give up after this.
+const REQUEST_TIMEOUT_MS = 12_000;
+function timeoutSignal(ms: number): AbortSignal {
+  const c = new AbortController(); // AbortSignal.timeout isn't on older iPads
+  window.setTimeout(() => c.abort(), ms);
+  return c.signal;
 }
 
 const sortItems = (o: BarOrder): BarOrder => ({
@@ -47,12 +58,18 @@ export function useBarOrders(onNewOrders: (orders: BarOrder[]) => void) {
 
   // Ticks made on this iPad that a reload mustn't undo: kept until a reload
   // that started after the save finished, so a stale reload can't flip them back.
-  const pendingTicks = useRef(new Map<string, { value: boolean; savedAt: number | null }>());
+  // Each tap gets a number, so a slower earlier save can't settle a later tap.
+  const pendingTicks = useRef(new Map<string, { value: boolean; savedAt: number | null; seq: number }>());
+  const tickSeq = useRef(0);
   const markTick = useCallback((itemId: string, value: boolean) => {
-    pendingTicks.current.set(itemId, { value, savedAt: null });
+    const seq = ++tickSeq.current;
+    pendingTicks.current.set(itemId, { value, savedAt: null, seq });
+    return seq;
   }, []);
-  const settleTick = useCallback((itemId: string, saved: boolean) => {
-    if (saved) pendingTicks.current.set(itemId, { ...pendingTicks.current.get(itemId)!, savedAt: Date.now() });
+  const settleTick = useCallback((itemId: string, seq: number, saved: boolean) => {
+    const p = pendingTicks.current.get(itemId);
+    if (!p || p.seq !== seq) return;
+    if (saved) pendingTicks.current.set(itemId, { ...p, savedAt: Date.now() });
     else pendingTicks.current.delete(itemId);
   }, []);
 
@@ -64,21 +81,29 @@ export function useBarOrders(onNewOrders: (orders: BarOrder[]) => void) {
     inFlight.current = true;
     const startedAt = Date.now();
     try {
+      const signal = timeoutSignal(REQUEST_TIMEOUT_MS);
       const [o, d, s] = await Promise.all([
         supabase
           .from("orders")
           .select(ORDER_SELECT)
           .eq("payment_status", "paid")
           .in("fulfilment_status", ["new", "preparing", "ready"])
-          .order("paid_at"),
+          .order("paid_at")
+          .abortSignal(signal),
         supabase
           .from("orders")
           .select(ORDER_SELECT)
           .eq("fulfilment_status", "delivered")
           .gte("delivered_at", startOfTodayLondon())
           .order("delivered_at", { ascending: false })
-          .limit(60),
-        supabase.from("venue_settings").select("ordering_paused, wait_amber_minutes, wait_red_minutes, bar_staff_can_toggle_stock").eq("id", 1).single(),
+          .limit(300)
+          .abortSignal(signal),
+        supabase
+          .from("venue_settings")
+          .select("ordering_paused, wait_amber_minutes, wait_red_minutes, bar_staff_can_toggle_stock")
+          .eq("id", 1)
+          .abortSignal(signal)
+          .single(),
       ]);
       if (o.error || d.error || s.error) throw o.error || d.error || s.error;
       const openOrders = (o.data as unknown as BarOrder[]).map(sortItems);

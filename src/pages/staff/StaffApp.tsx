@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AuthProvider, useAuth } from "../../lib/auth";
 import { supabase } from "../../lib/supabase";
 import { friendlyError } from "../../lib/errors";
@@ -27,9 +27,12 @@ export default function StaffApp() {
 }
 
 function StaffGate() {
-  const { loading, session, profile, signOut } = useAuth();
+  const { loading, session, profile, offline, signOut } = useAuth();
   if (loading) return <div className="flex min-h-dvh items-center justify-center bg-forest-night text-gold-soft">Loading…</div>;
   if (!session) return <BarLogin />;
+  if (!profile && offline) {
+    return <div className="flex min-h-dvh items-center justify-center bg-forest-night px-6 text-center text-gold-soft">Can't reach the server. Trying again…</div>;
+  }
   if (!profile || !profile.active) {
     return (
       <main className="gutter flex min-h-dvh items-center justify-center bg-forest-night">
@@ -97,6 +100,17 @@ function BarScreen() {
 
   const current = openId ? open.find((o) => o.id === openId) : undefined;
 
+  // The open order was finished, refunded or moved off the list on another
+  // iPad: say so, and forget it so it can't pop back up after an Undo there.
+  const lastOpen = useRef<BarOrder | null>(null);
+  if (current) lastOpen.current = current;
+  useEffect(() => {
+    if (!openId || current || !loaded) return;
+    const gone = lastOpen.current;
+    setOpenId(null);
+    if (gone?.id === openId) toast(`Order #${gone.order_number} (Table ${gone.table_label}) was finished or refunded on another iPad`);
+  }, [openId, current, loaded, toast]);
+
   // Tick a drink straight away on screen, then save; undo on failure.
   async function tick(itemId: string, ticked: boolean) {
     const patch = (value: boolean) =>
@@ -104,9 +118,9 @@ function BarScreen() {
         orders.map((o) => ({ ...o, order_items: o.order_items.map((i) => (i.id === itemId ? { ...i, ticked: value } : i)) })),
       );
     patch(ticked);
-    markTick(itemId, ticked);
+    const seq = markTick(itemId, ticked);
     const { error } = await supabase.rpc("staff_set_item_ticked", { p_item_id: itemId, p_ticked: ticked });
-    settleTick(itemId, !error);
+    settleTick(itemId, seq, !error);
     if (error) {
       patch(!ticked);
       toast(friendlyError(error), { error: true });
@@ -236,7 +250,7 @@ function BarScreen() {
       {admin && (
         <BarAdmin
           paused={settings.paused}
-          problemOrders={open.filter((o) => o.problem_reason)}
+          problemOrders={[...open, ...done].filter((o) => o.problem_reason)}
           onClose={() => setAdmin(false)}
           onChanged={() => void refresh()}
         />

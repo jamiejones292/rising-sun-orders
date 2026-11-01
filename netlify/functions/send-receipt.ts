@@ -43,6 +43,8 @@ export default async function handler(req: Request): Promise<Response> {
   const email = buildReceiptEmail(receipt, SITE_URL);
   try {
     const res = await fetch(`${RESEND_URL}/emails`, {
+      // Give up rather than hang: the catch below frees the receipt to try again.
+      signal: AbortSignal.timeout(8000),
       method: "POST",
       headers: { authorization: `Bearer ${resendKey}`, "content-type": "application/json" },
       body: JSON.stringify({

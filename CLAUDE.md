@@ -58,6 +58,8 @@ architecture changes, and never ask for secrets in chat.
   drink in a hidden category named exactly "Mixers" (created on first use; `isMixersCategory`),
   with one hidden "Mixer" size, no option lists, and a linked mixer option. Hidden categories
   keep it off the menu and unorderable on its own. Categories page locks its name and visibility.
+  Only a *hidden* category named "Mixers" counts (`isMixerOnlyCategory`); the Categories page
+  refuses creating or renaming another category to "Mixers".
 - Bar staff stock switches: allowed when the owner turns on "Bar staff can switch drinks
   out of stock" in Venue settings (off by default); a Stock button then appears on the bar
   screen. Adding, editing and archiving drinks stays managers-only.
@@ -74,6 +76,10 @@ architecture changes, and never ask for secrets in chat.
   `staff_fulfil_order`, `staff_reopen_order`, `staff_change_table`, `set_ordering_paused`,
   `set_drink_available`, `set_variant_available`); customers track via
   `get_order_tracking(token)`. Orders, payments and refunds are inserted by the server only.
+- Sign-outs are `scope: "local"` (one bar account is shared by every iPad). The admin site
+  uses its own auth storage key (`rs-admin-auth`, chosen by path in `lib/supabase.ts`), so
+  /admin on a bar iPad needs a manager login and never touches the bar session. A failed
+  profile check keeps the current profile and retries (`offline` in auth context).
 - Staff log in with a staff ID mapped to `<staff_code>@staff.drinksorder.app`; bar iPads use
   the bar-only account `bar@staff.drinksorder.app` (`staff_profiles.is_device`).
 
@@ -86,9 +92,10 @@ architecture changes, and never ask for secrets in chat.
   rules; needs migration 009 for `linked_drink_id`. Which drinks offer a list is set in the
   drink editor.
 - Sales (`Sales.tsx`, `/admin/sales`, managers): day / week (Mon–Sun) / month / year in UK time,
-  from `admin_sales_stats(from, to, include_test)` (migration 012): paid orders by `paid_at`
-  (part-refunded count, refunded-in-full don't), refunds by refund time, top drinks by name +
-  size (combine sizes on the page), mixers & extras. "Include test orders" defaults on until
+  from `admin_sales_stats(from, to, include_test)` (migration 012, fixed in 014): takings and
+  orders = every order paid in the period incl. ones refunded since (gross); refunds by refund
+  time (so takings − refunds is net); drinks/top drinks/extras leave out refunded-in-full
+  orders and out-of-stock lines. "Include test orders" defaults on until
   card payments go live; switch the default off then.
 - Multi-row saves go through `admin_save_drink`, `admin_reorder_categories` and
   `admin_save_opening_hours` (migration 002). Single-field changes use direct updates.
@@ -110,6 +117,10 @@ architecture changes, and never ask for secrets in chat.
 - Order view layout: notices (test, alcohol, refund) are one slim row of labels; drinks in two
   columns on md+ when 3+; the bottom bar is slim until all are ticked (then ORDER FULFILLED);
   a gold "↓ n more to pour below" button shows while unticked drinks aren't fully visible.
+- "Fulfilled today" runs from 6am UK time (trading day) and lists up to 300. Bar reloads time
+  out after 12 s. If the open order is finished/refunded on another iPad, a toast says so.
+  The bar admin's 5-minute lock pauses while a drink form or refund is open. The chime
+  resumes audio after the iPad sleeps (`alerts.ts`).
 - NEW marker: not opened on this iPad (localStorage) and still `fulfilment_status = new`.
 - The admin section signs a manager in on a separate, unsaved client
   (`createElevatedClient`) so the bar session stays put; locks after 5 minutes. Bar password
@@ -148,7 +159,9 @@ architecture changes, and never ask for secrets in chat.
 - Test orders (migration 005): `place_test_order(jsonb)` prices everything in SQL, only while
   `venue_settings.test_orders_until` is in the future (owner's 2-hour button), marks orders
   `payment_provider = 'test'`; `admin_delete_test_orders()` clears them. Test mode ignores
-  ordering hours in the UI. Bar shows "TEST ORDER · NOT PAID".
+  ordering hours in the UI. Bar shows "TEST ORDER · NOT PAID". Test mode only applies on
+  preview phones (`previewPhone` prop, localStorage `rs-preview`), and the database allows at
+  most 20 test orders a minute (`limit_test_orders` trigger, migration 014).
   The confirm screen's test panel shows stand-in "Pay £x with Apple Pay / Google Pay / card"
   buttons (text only, no brand logos, marked TEST) that all place the same test order; the
   real provider's wallet buttons replace them.

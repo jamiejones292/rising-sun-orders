@@ -43,6 +43,12 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
 
+# Customers' order pages are private links: keep them out of search results.
+[[headers]]
+  for = "/order/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
 # Staff and admin pages must never appear in search results.
 [[headers]]
   for = "/staff/*"

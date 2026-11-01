@@ -187,7 +187,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const show = useCallback((message: string, opts?: { undo?: () => void; error?: boolean }) => {
     window.clearTimeout(timer.current);
     setToast({ id: Date.now(), message, ...opts });
-    timer.current = window.setTimeout(() => setToast(null), opts?.undo ? 6000 : opts?.error ? 6000 : 2800);
+    timer.current = window.setTimeout(() => setToast(null), opts?.undo ? 8000 : opts?.error ? 6000 : 2800);
   }, []);
   return (
     <ToastContext.Provider value={show}>
@@ -202,7 +202,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           <span>{toast.message}</span>
           {toast.undo && (
             <button
-              className="font-bold text-gold-soft underline"
+              className="min-h-11 shrink-0 rounded-md bg-gold-soft px-4 text-base font-extrabold text-forest"
               onClick={() => {
                 toast.undo?.();
                 setToast(null);

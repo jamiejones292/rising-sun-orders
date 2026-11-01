@@ -13,6 +13,8 @@ type AuthState = {
   loading: boolean;
   session: Session | null;
   profile: StaffProfile | null;
+  // The last profile check failed to reach the server (it retries by itself).
+  offline: boolean;
   signIn: (staffId: string, password: string) => Promise<string | null>;
   signOut: () => Promise<void>;
 };
@@ -23,17 +25,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<StaffProfile | null>(null);
+  const [offline, setOffline] = useState(false);
 
   const loadProfile = useCallback(async (s: Session | null) => {
     if (!s) {
       setProfile(null);
       return;
     }
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("staff_profiles")
       .select("user_id, staff_code, display_name, role, is_device, active")
       .eq("user_id", s.user.id)
       .maybeSingle();
+    // A network blip mustn't look like "not a staff account": keep what we
+    // had and try again shortly.
+    if (error) {
+      setOffline(true);
+      window.setTimeout(() => void loadProfile(s), 5000);
+      return;
+    }
+    setOffline(false);
     setProfile((data as StaffProfile | null) ?? null);
   }, []);
 
@@ -77,12 +88,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    // This screen only: every bar iPad shares one account, and a global sign
+    // out would end it on all of them.
+    await supabase.auth.signOut({ scope: "local" });
     setProfile(null);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ loading, session, profile, signIn, signOut }}>
+    <AuthContext.Provider value={{ loading, session, profile, offline, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );

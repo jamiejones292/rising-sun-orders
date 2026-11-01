@@ -12,10 +12,15 @@ if (!url || !publishableKey) {
   );
 }
 
+// The admin site keeps its own login, separate from the bar screen's, so
+// opening /admin on a bar iPad doesn't reuse (or sign out) the bar account.
+const adminArea = typeof window !== "undefined" && window.location.pathname.startsWith("/admin");
+
 export const supabase = createClient(url, publishableKey, {
   auth: {
     persistSession: true, // bar iPads stay signed in
     autoRefreshToken: true,
+    ...(adminArea ? { storageKey: "rs-admin-auth" } : {}),
   },
 });
 

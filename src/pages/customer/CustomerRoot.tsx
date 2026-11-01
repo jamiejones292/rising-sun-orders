@@ -36,20 +36,34 @@ export default function CustomerRoot() {
     setParams(params, { replace: true });
   }, [params, setParams]);
 
+  // A failed check (weak signal) is retried rather than taken as "not live",
+  // so customers aren't told ordering doesn't exist.
   useEffect(() => {
-    void supabase
-      .from("venue_settings")
-      .select("customer_menu_live")
-      .eq("id", 1)
-      .single()
-      .then(({ data, error }) => setLive(error ? false : !!data?.customer_menu_live));
+    let alive = true;
+    let timer = 0;
+    const check = () =>
+      void supabase
+        .from("venue_settings")
+        .select("customer_menu_live")
+        .eq("id", 1)
+        .single()
+        .then(({ data, error }) => {
+          if (!alive) return;
+          if (error) timer = window.setTimeout(check, 3000);
+          else setLive(!!data?.customer_menu_live);
+        });
+    check();
+    return () => {
+      alive = false;
+      window.clearTimeout(timer);
+    };
   }, []);
 
   if (live === null && !preview) return <div className="min-h-dvh bg-ivory" />;
   if (!live && !preview) return <CustomerHome />;
   return (
     <Suspense fallback={<main className="gutter py-20 text-center text-muted">Loading the drinks menu…</main>}>
-      <CustomerApp preview={!live} />
+      <CustomerApp preview={!live} previewPhone={preview} />
     </Suspense>
   );
 }

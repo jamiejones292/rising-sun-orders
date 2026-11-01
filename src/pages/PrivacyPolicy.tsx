@@ -14,7 +14,7 @@ const COLLECT: { what: string; why: string }[] = [
     what: "Payment details",
     why: "Taken and stored by our card payment provider, not by us. We only see the amount, whether it was paid, and the card type with its last four digits, so we can match payments and give refunds.",
   },
-  { what: "Your email address, if you ask for a receipt", why: "To send your receipt and, if you're refunded, to confirm it. We never use it for marketing." },
+  { what: "Your email address, if you ask for a receipt", why: "To send your receipt. We never use it for marketing." },
   { what: "That you confirmed you're 18 or over", why: "Recorded with orders that contain alcohol, as part of selling alcohol responsibly." },
   {
     what: "Basic technical information, such as your IP address",

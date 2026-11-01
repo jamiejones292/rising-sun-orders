@@ -17,7 +17,9 @@ import ConfirmScreen from "./ConfirmScreen";
 
 type Screen = "welcome" | "menu" | "basket" | "table" | "confirm";
 
-export default function CustomerApp({ preview }: { preview: boolean }) {
+// previewPhone: this phone was set up with /?preview. Test orders only work on
+// those phones, so customers never see the test buttons.
+export default function CustomerApp({ preview, previewPhone }: { preview: boolean; previewPhone: boolean }) {
   const { menu, error, reload } = useCustomerMenu();
   const basket = useBasket();
   const [screen, setScreen] = useState<Screen>("welcome");
@@ -69,7 +71,8 @@ export default function CustomerApp({ preview }: { preview: boolean }) {
   const paused = menu.settings.ordering_paused;
   const belowMinimum = total > 0 && total < menu.settings.minimum_order_pence;
   // Test orders (no payment) while the owner has test mode switched on.
-  const testMode = !!menu.settings.test_orders_until && new Date(menu.settings.test_orders_until).getTime() > Date.now();
+  const testMode =
+    previewPhone && !!menu.settings.test_orders_until && new Date(menu.settings.test_orders_until).getTime() > Date.now();
   const canCheckout = !paused && (window_.open || testMode) && !problems && !belowMinimum && count > 0;
 
   async function placeTestOrder(): Promise<string | null> {
@@ -291,7 +294,7 @@ export default function CustomerApp({ preview }: { preview: boolean }) {
       {sheet && (
         <ProductSheet
           menu={menu}
-          drink={sheet.drink}
+          drink={menu.drinks.find((d) => d.id === sheet.drink.id) ?? sheet.drink}
           editing={sheet.index !== null ? basket.lines[sheet.index]! : null}
           onClose={() => setSheet(null)}
           onSave={(line) => {
@@ -326,6 +329,10 @@ const TEST_ORDER_ERRORS: Record<string, string> = {
   age_not_confirmed: "Please confirm the age declaration on the previous step.",
   below_minimum: "Your basket is below the minimum order.",
   bad_email: "Please check the receipt email address.",
+  empty_basket: "Your basket is empty.",
+  bad_quantity: "Each drink can be ordered up to 20 at a time. Change the number in your basket.",
+  too_many_lines: "That's a lot of different drinks for one order. Please split it into two orders.",
+  too_many_test_orders: "Lots of test orders just now. Wait a minute and try again.",
 };
 
 function Banner({ title, children }: { title: string; children: ReactNode }) {

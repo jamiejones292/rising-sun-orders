@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "../../lib/supabase";
 import type { MenuData } from "../../lib/adminData";
@@ -6,24 +6,26 @@ import { friendlyError } from "../../lib/errors";
 import { UK_ALLERGENS, type Drink } from "../../lib/types";
 import { Button, Drawer, Field, Switch, inputClass } from "../../components/ui";
 
-type SizeRow = { key: string; id?: string; label: string; price: string; available: boolean };
+// touched: the size's stock switch was changed in this form.
+type SizeRow = { key: string; id?: string; label: string; price: string; available: boolean; touched?: boolean };
 
 let keySeq = 0;
 const newKey = () => `k${++keySeq}`;
 
 // Price typed as pounds ("6.20", "£6", "6.2") to whole pence, or null if not a price.
+// Up to £1,000, the database's limit for a size. ".50" is fine too.
 export function parsePrice(text: string): number | null {
   const t = text.replace(/[£,\s]/g, "");
-  if (!/^\d{1,4}(\.\d{1,2})?$/.test(t)) return null;
+  if (!/^(\d{1,4}(\.\d{1,2})?|\.\d{1,2})$/.test(t)) return null;
   const pence = Math.round(parseFloat(t) * 100);
-  return pence > 0 ? pence : null;
+  return pence > 0 && pence <= 100_000 ? pence : null;
 }
 
 // Mixer price in pounds ("1.20", "£1", empty for free) to whole pence, or null.
 export function parseMixerPrice(text: string): number | null {
   const t = text.replace(/[£,\s]/g, "");
   if (t === "") return 0;
-  if (!/^\d{1,3}(\.\d{1,2})?$/.test(t)) return null;
+  if (!/^(\d{1,3}(\.\d{1,2})?|\.\d{1,2})$/.test(t)) return null;
   return Math.round(parseFloat(t) * 100);
 }
 
@@ -32,6 +34,11 @@ export function parseMixerPrice(text: string): number | null {
 // the spirits' mixer list and has a stock switch. Created on first use.
 export const MIXERS_CATEGORY = "Mixers";
 export const isMixersCategory = (name: string) => name.trim().toLowerCase() === MIXERS_CATEGORY.toLowerCase();
+// The real mixer-only category is the hidden one; a visible category that
+// happens to be called "Mixers" is an ordinary category.
+export const isMixerOnlyCategory = (c: { name: string; visible: boolean }) => isMixersCategory(c.name) && !c.visible;
+// Mixer choices are limited to 60 characters in the database; drink names to 80.
+const MIXER_LABEL_MAX = 60;
 const NEW_MIXERS = "__mixers__";
 
 export default function DrinkEditor({
@@ -60,7 +67,13 @@ export default function DrinkEditor({
   // linked to the drink so it goes out of stock with it (migration 009).
   const mixerGroup = data.groups.find((g) => g.name.toLowerCase().includes("mixer"));
   const myMixer = drink ? mixerGroup?.modifier_options.find((o) => o.linked_drink_id === drink.id && !o.archived_at) : undefined;
-  const mixersCat = data.categories.find((c) => isMixersCategory(c.name));
+  const [madeMixersCat, setMadeMixersCat] = useState<string | null>(null);
+  const mixersCat = data.categories.find(isMixerOnlyCategory) ?? (madeMixersCat ? { id: madeMixersCat } : undefined);
+  // Set after the first successful save of a new drink, so retrying (e.g. after
+  // the mixer step failed) updates that drink instead of adding a second one.
+  const [savedId, setSavedId] = useState<string | null>(null);
+  const drinkId = drink?.id ?? savedId ?? undefined;
+  const [availableTouched, setAvailableTouched] = useState(false);
   const [asMixer, setAsMixer] = useState(!!myMixer);
   const [mixerPrice, setMixerPrice] = useState(myMixer ? (myMixer.price_pence / 100).toFixed(2) : "");
   const [name, setName] = useState(drink?.name ?? "");
@@ -86,8 +99,27 @@ export default function DrinkEditor({
       : [{ key: newKey(), label: "Pint", price: "", available: true }],
   );
   const [error, setError] = useState<string | null>(null);
+
+  // Stock as it is right now in the database, for switches not changed in this
+  // form: a drink switched off at the bar meanwhile mustn't be put back on sale
+  // by saving a price change.
+  async function currentStock() {
+    if (!drinkId) return null;
+    const { data: now } = await client.from("drinks").select("available, drink_variants(id, available, archived_at)").eq("id", drinkId).maybeSingle();
+    return now as { available: boolean; drink_variants: { id: string; available: boolean; archived_at: string | null }[] } | null;
+  }
   const [busy, setBusy] = useState(false);
   const [confirmArchive, setConfirmArchive] = useState(false);
+
+  // Ask before throwing away edits (a stray tap outside the form closes it).
+  const snapshot = JSON.stringify([
+    name, categoryId, description, abv, alcohol, welsh, noIce, vat, available, allergens, groupIds, asMixer, mixerPrice,
+    sizes.map((x) => [x.label, x.price, x.available]),
+  ]);
+  const initial = useRef(snapshot);
+  const requestClose = () => {
+    if (snapshot === initial.current || window.confirm("Close without saving your changes?")) onClose();
+  };
 
   const toggleIn = (list: string[], value: string) =>
     list.includes(value) ? list.filter((x) => x !== value) : [...list, value];
@@ -100,13 +132,10 @@ export default function DrinkEditor({
     if (!categoryId) return setError("Choose a category.");
     if (mixerOnly) return saveMixerOnly();
     if (sizes.length === 0) return setError("Add at least one size with a price.");
-    const variants = [];
     for (const s of sizes) {
-      const pence = parsePrice(s.price);
-      if (!s.label.trim() || pence === null) {
-        return setError("Each size needs a name and a price, written like 6.20.");
+      if (!s.label.trim() || parsePrice(s.price) === null) {
+        return setError("Each size needs a name and a price, written like 6.20 (up to £1,000).");
       }
-      variants.push({ id: s.id, label: s.label.trim(), price_pence: pence, available: s.available });
     }
     if (abv.trim() && (isNaN(Number(abv)) || Number(abv) < 0 || Number(abv) > 99.9)) {
       return setError("ABV should be a number like 4.5, or left empty.");
@@ -114,9 +143,22 @@ export default function DrinkEditor({
     const mixerPence = parseMixerPrice(mixerPrice);
     if (asMixer && mixerPence === null) return setError("Write the mixer price like 1.20, or 0 if it's free.");
     setBusy(true);
-    const { data: savedId, error: err } = await client.rpc("admin_save_drink", {
+    const now = await currentStock();
+    const variants = sizes
+      .map((s) => {
+        const fresh = s.id ? now?.drink_variants.find((v) => v.id === s.id) : undefined;
+        // A size removed elsewhere since this form opened stays removed.
+        if (fresh?.archived_at && !s.touched) return null;
+        return { id: s.id, label: s.label.trim(), price_pence: parsePrice(s.price)!, available: s.touched || !fresh ? s.available : fresh.available };
+      })
+      .filter((v) => v !== null);
+    if (variants.length === 0) {
+      setBusy(false);
+      return setError("This drink's sizes were removed elsewhere. Close the form and open it again.");
+    }
+    const { data: newId, error: err } = await client.rpc("admin_save_drink", {
       p_drink: {
-        id: drink?.id,
+        id: drinkId,
         category_id: categoryId,
         name: name.trim(),
         description: description.trim(),
@@ -126,7 +168,7 @@ export default function DrinkEditor({
         offers_no_ice: noIce,
         allergens,
         vat_rate: Number(vat),
-        available,
+        available: availableTouched || !now ? available : now.available,
         variants,
         modifier_group_ids: groupIds,
       },
@@ -135,9 +177,11 @@ export default function DrinkEditor({
       setBusy(false);
       return setError(friendlyError(err));
     }
-    const mixerErr = await saveMixer((savedId as string | null) ?? drink?.id ?? null, mixerPence ?? 0);
+    const id = (newId as string | null) ?? drinkId ?? null;
+    if (id) setSavedId(id);
+    const mixerErr = await saveMixer(id, mixerPence ?? 0);
     setBusy(false);
-    if (mixerErr) return setError(`The drink was saved, but the mixer wasn't: ${friendlyError(mixerErr)}`);
+    if (mixerErr) return setError(`The drink was saved, but the mixer wasn't: ${friendlyError(mixerErr)} Press Save to try again.`);
     await onSaved(name.trim(), false);
   }
 
@@ -161,10 +205,12 @@ export default function DrinkEditor({
         return setError(friendlyError(catErr));
       }
       catId = (made as { id: string }).id;
+      setMadeMixersCat(catId);
     }
-    const { data: savedId, error: err } = await client.rpc("admin_save_drink", {
+    const now = await currentStock();
+    const { data: newId, error: err } = await client.rpc("admin_save_drink", {
       p_drink: {
-        id: drink?.id,
+        id: drinkId,
         category_id: catId,
         name: name.trim(),
         description: "",
@@ -174,7 +220,7 @@ export default function DrinkEditor({
         offers_no_ice: false,
         allergens,
         vat_rate: Number(vat),
-        available,
+        available: availableTouched || !now ? available : now.available,
         variants: [{ id: sizes[0]?.id, label: "Mixer", price_pence: Math.max(pence, 1), available: true }],
         modifier_group_ids: [],
       },
@@ -183,7 +229,9 @@ export default function DrinkEditor({
       setBusy(false);
       return setError(friendlyError(err));
     }
-    const mixerErr = await saveMixer((savedId as string | null) ?? drink?.id ?? null, pence, true);
+    const id = (newId as string | null) ?? drinkId ?? null;
+    if (id) setSavedId(id);
+    const mixerErr = await saveMixer(id, pence, true);
     setBusy(false);
     if (mixerErr) return setError(`The mixer was saved, but isn't in the mixer list yet: ${friendlyError(mixerErr)}`);
     await onSaved(name.trim(), false);
@@ -192,7 +240,7 @@ export default function DrinkEditor({
   // Add, update or remove this drink's choice in the mixer list.
   async function saveMixer(drinkId: string | null, pence: number, offer = asMixer) {
     if (!mixerGroup || !drinkId) return null;
-    const label = name.trim();
+    const label = name.trim().slice(0, MIXER_LABEL_MAX);
     if (offer && myMixer) {
       // Keep the mixer's name in step with the drink unless someone renamed it on purpose.
       const newLabel = myMixer.label === drink?.name ? label : myMixer.label;
@@ -234,7 +282,7 @@ export default function DrinkEditor({
   return (
     <Drawer
       open
-      onClose={onClose}
+      onClose={requestClose}
       eyebrow={drink ? "Edit drink" : "New drink"}
       title={drink ? drink.name : "Add a new drink"}
       footer={
@@ -242,7 +290,7 @@ export default function DrinkEditor({
           <Button onClick={() => void save()} disabled={busy}>
             {busy ? "Saving…" : drink ? "Save changes" : "Save & publish"}
           </Button>
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" onClick={requestClose}>
             Cancel
           </Button>
           <span className="flex-1" />
@@ -326,7 +374,7 @@ export default function DrinkEditor({
           </Field>
           <div className="flex items-center gap-3">
             <span className="text-sm font-bold text-forest">In stock</span>
-            <Switch on={available} label="Mixer in stock" onChange={setAvailable} />
+            <Switch on={available} label="Mixer in stock" onChange={(on) => (setAvailable(on), setAvailableTouched(true))} />
           </div>
         </div>
       )}
@@ -378,7 +426,7 @@ export default function DrinkEditor({
                   on={s.available}
                   showText={false}
                   label={`${s.label || "Size"} available`}
-                  onChange={(on) => setSizes(sizes.map((x) => (x.key === s.key ? { ...x, available: on } : x)))}
+                  onChange={(on) => setSizes(sizes.map((x) => (x.key === s.key ? { ...x, available: on, touched: true } : x)))}
                 />
                 <button
                   type="button"
@@ -520,7 +568,7 @@ export default function DrinkEditor({
             <div className="flex flex-col gap-1.5">
               <span className="text-sm font-bold text-forest">On the menu</span>
               <div className="flex h-11 items-center">
-                <Switch on={available} label="Drink available" onChange={setAvailable} />
+                <Switch on={available} label="Drink available" onChange={(on) => (setAvailable(on), setAvailableTouched(true))} />
               </div>
             </div>
           </div>

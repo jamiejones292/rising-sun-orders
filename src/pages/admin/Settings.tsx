@@ -96,7 +96,8 @@ function TestOrdersPanel({ settings, onSaved }: { settings: VenueSettings; onSav
       <p className="m-0 max-w-[70ch] text-sm text-muted">
         Try the whole journey before payments are connected: open drinksorder.app/?preview on one tablet as a customer and /staff on
         another. Test orders skip payment, go straight to the bar screen marked "TEST ORDER · NOT PAID", and switch themselves off
-        after 2 hours. Ordering hours are ignored for test orders.
+        after 2 hours. Ordering hours are ignored for test orders. They only work on phones opened once with drinksorder.app/?preview,
+        so real customers never see them.
       </p>
       <div className="flex flex-wrap items-center gap-3">
         <b className={on ? "text-warn" : "text-muted"}>{on ? `Test orders ON until ${untilText}` : "Test orders off"}</b>
@@ -145,6 +146,13 @@ function HoursPanel({ hours, onSaved }: { hours: OpeningHours[]; onSaved: () => 
     setRows(rows.map((r) => (r.weekday === weekday ? { ...r, ...patch } : r)));
 
   async function save() {
+    const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+    for (const r of rows) {
+      if (r.closed) continue;
+      const day = DAYS[r.weekday - 1];
+      if (!r.opens_at || !r.closes_at) return toast(`Set both times for ${day}, or tick it as closed.`, { error: true });
+      if (hhmm(r.opens_at) === hhmm(r.closes_at)) return toast(`${day} opens and closes at the same time. Change one, or tick it as closed.`, { error: true });
+    }
     setBusy(true);
     const { error } = await supabase.rpc("admin_save_opening_hours", {
       p_hours: rows.map((r) => ({ weekday: r.weekday, opens_at: hhmm(r.opens_at), closes_at: hhmm(r.closes_at), closed: r.closed })),
@@ -220,7 +228,8 @@ function OperationsPanel({ settings, onSaved }: { settings: VenueSettings; onSav
     if (!Number.isInteger(a) || !Number.isInteger(r) || a < 1 || r <= a || r > 240) {
       return setError("Red needs to be a bigger whole number of minutes than amber, for example 5 and 10.");
     }
-    const min = minOrder.trim() === "" ? 0 : parsePrice(minOrder);
+    // Empty or 0 means no minimum.
+    const min = minOrder.trim() === "" || /^£?\s*0*(\.0*)?$/.test(minOrder.trim()) ? 0 : parsePrice(minOrder);
     if (min === null) return setError("Minimum order should be an amount like 5.00, or left empty for none.");
     if (!pauseMsg.trim()) return setError("The pause message can't be empty.");
     setError(null);

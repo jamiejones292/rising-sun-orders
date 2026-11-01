@@ -62,7 +62,13 @@ export default function TrackOrder() {
     };
   }, [load]);
 
-  if (order === undefined) return <main className="gutter py-20 text-center text-muted">Loading your order…</main>;
+  if (order === undefined) {
+    return (
+      <main className="gutter py-20 text-center text-muted">
+        {offline ? "Can't reach the pub's system right now. Trying again… your order is safe." : "Loading your order…"}
+      </main>
+    );
+  }
   if (order === null) {
     return (
       <main className="gutter mx-auto flex min-h-dvh max-w-[440px] flex-col items-center justify-center gap-4 text-center">

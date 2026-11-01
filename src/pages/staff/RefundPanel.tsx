@@ -20,13 +20,13 @@ type RefundOrder = {
   payment_provider: string | null;
   fulfilment_status: string;
   problem_reason: string | null;
-  order_items: { id: string; drink_name: string; variant_label: string; quantity: number; line_total_pence: number; sort_order: number }[];
+  order_items: { id: string; drink_name: string; variant_label: string; quantity: number; line_total_pence: number; sort_order: number; out_of_stock?: boolean }[];
   refunds: { amount_pence: number; reason: string; created_at: string }[];
 };
 
 const SELECT =
   "id, order_number, table_label, total_pence, refunded_pence, payment_status, payment_provider, fulfilment_status, problem_reason, " +
-  "order_items(id, drink_name, variant_label, quantity, line_total_pence, sort_order), refunds(amount_pence, reason, created_at)";
+  "order_items(*), refunds(amount_pence, reason, created_at)";
 
 // The reasons in the refund policy (/refunds).
 const REASONS = [
@@ -79,10 +79,16 @@ export default function RefundPanel({
       setOrder(o);
       // Start from what the bar reported, until something has been refunded.
       const problem = o.refunded_pence === 0 ? (o.problem_reason ?? "") : "";
+      // Drinks marked out of stock (migration 013), else matched from the report text.
+      const marked = o.order_items.filter((i) => i.out_of_stock);
       setPicked(
-        problem.startsWith("Out of stock:")
-          ? o.order_items.filter((i) => problem.includes(`${i.quantity} × ${i.drink_name} (${i.variant_label})`)).map((i) => i.id)
-          : [],
+        o.refunded_pence > 0
+          ? []
+          : marked.length
+            ? marked.map((i) => i.id)
+            : problem.startsWith("Out of stock:")
+              ? o.order_items.filter((i) => problem.includes(`: ${i.quantity} × ${i.drink_name} (${i.variant_label})`) || problem.includes(`, ${i.quantity} × ${i.drink_name} (${i.variant_label})`)).map((i) => i.id)
+              : [],
       );
       if (problem.startsWith("Out of stock")) setReason("Out of stock");
       else if (problem.startsWith("Refusing service")) setReason("Refused service (ID or intoxicated)");

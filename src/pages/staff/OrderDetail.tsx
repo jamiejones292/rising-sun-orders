@@ -102,7 +102,8 @@ export default function OrderDetail({
   onBackRef.current = onBack;
   useEffect(() => {
     backRef.current?.focus({ preventScroll: true });
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onBackRef.current();
+    // Escape leaves the order, unless a pop-up is open (it closes that instead).
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && !document.querySelector('[role="dialog"]') && onBackRef.current();
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, []);
@@ -364,7 +365,7 @@ export default function OrderDetail({
         <div className="mx-auto flex max-w-[900px] flex-col gap-2">
           <div className="flex items-center gap-3 font-extrabold text-forest">
             <span className="h-3 flex-1 overflow-hidden rounded-md bg-vellum">
-              <i className="block h-full rounded-md bg-bar-ok" style={{ width: `${(t / n) * 100}%` }} />
+              <i className="block h-full rounded-md bg-bar-ok" style={{ width: `${n ? (t / n) * 100 : 0}%` }} />
             </span>
             <span className="tabular-nums">
               {n === 0 ? "Every drink is out of stock. A manager will refund this order." : `${t} of ${n} ticked`}

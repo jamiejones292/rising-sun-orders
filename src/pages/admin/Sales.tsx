@@ -121,7 +121,7 @@ export default function Sales() {
 
   return (
     <>
-      <PageHeader title="Sales" intro="What sold most, by day, week, month or year (UK time). Orders refunded in full aren't counted." />
+      <PageHeader title="Sales" intro="What sold most, by day, week, month or year (UK time). Takings count every order paid in the period; refunds count when they were made. Drinks sold leaves out refunded orders and drinks that were out of stock." />
 
       <div className="flex flex-wrap items-center gap-2.5">
         <div className="flex rounded-full border border-line bg-paper p-0.5" role="group" aria-label="Period">
@@ -171,7 +171,11 @@ export default function Sales() {
         <Tile label="Orders" value={stats ? String(stats.orders) : "–"} />
         <Tile label="Drinks sold" value={stats ? String(stats.drinks) : "–"} />
         <Tile label="Takings" value={stats ? formatPence(stats.revenue_pence) : "–"} note="before refunds" />
-        <Tile label="Refunded" value={stats ? formatPence(stats.refunded_pence) : "–"} />
+        <Tile
+          label="Refunded"
+          value={stats ? formatPence(stats.refunded_pence) : "–"}
+          note={stats ? `${formatPence(stats.revenue_pence - stats.refunded_pence)} after refunds` : undefined}
+        />
       </div>
 
       <Panel
@@ -193,7 +197,7 @@ export default function Sales() {
         }
       >
         {!stats ? (
-          <p className="text-muted">Loading…</p>
+          error ? null : <p className="text-muted">Loading…</p>
         ) : rows.length === 0 ? (
           <p className="text-muted">
             No drinks sold {period === "day" ? "on this day" : `in this ${period}`}.

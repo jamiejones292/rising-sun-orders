@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { supabase } from "../../lib/supabase";
 import { friendlyError } from "../../lib/errors";
 import { formatPence } from "../../lib/money";
@@ -179,78 +179,82 @@ export default function OrderDetail({
         </div>
 
         {panel === "problem" && (
-          <div className="flex flex-col gap-2.5 rounded-[10px] border-2 border-bar-red bg-bar-red-soft p-3.5 font-semibold text-bar-red">
-            {outPick ? (
-              <>
-                <span>Which drinks are out of stock?</span>
-                <div className="flex flex-col gap-1.5">
-                  {order.order_items.map((i) => (
-                    <label key={i.id} className="flex min-h-11.5 items-center gap-3 rounded-md border-[1.5px] border-bar-red bg-white px-3.5 font-bold">
-                      <input
-                        type="checkbox"
-                        className="h-5.5 w-5.5 accent-bar-red"
-                        checked={outPick.includes(i.id)}
-                        onChange={() => setOutPick(outPick.includes(i.id) ? outPick.filter((x) => x !== i.id) : [...outPick, i.id])}
-                      />
-                      {i.quantity} × {i.drink_name} <span className="font-medium">{i.variant_label}</span>
-                    </label>
-                  ))}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    disabled={outPick.length === 0}
-                    onClick={() =>
-                      void report(
-                        `Out of stock: ${order.order_items
-                          .filter((i) => outPick.includes(i.id))
-                          .map((i) => `${i.quantity} × ${i.drink_name} (${i.variant_label})`)
-                          .join(", ")}`.slice(0, 200),
-                      )
-                    }
-                    className="min-h-11.5 rounded-md bg-bar-red px-4 font-extrabold text-white disabled:opacity-45"
-                  >
-                    Report {outPick.length || ""} out of stock
-                  </button>
-                  <button onClick={() => setOutPick(null)} className="min-h-11.5 rounded-md border-[1.5px] border-bar-red bg-white px-3.5 font-bold">
-                    Back
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <span>What's wrong with this order?</span>
-                <div className="flex flex-wrap gap-2">
-                  {PROBLEMS.map((p) => (
+          <Sheet title="Problem with this order" onClose={() => (setOutPick(null), setPanel("none"))}>
+            <div className="flex flex-col gap-2.5 rounded-[10px] border-2 border-bar-red bg-bar-red-soft p-3.5 font-semibold text-bar-red">
+              {outPick ? (
+                <>
+                  <span>Which drinks are out of stock?</span>
+                  <div className="flex flex-col gap-1.5">
+                    {order.order_items.map((i) => (
+                      <label key={i.id} className="flex min-h-11.5 items-center gap-3 rounded-md border-[1.5px] border-bar-red bg-white px-3.5 font-bold">
+                        <input
+                          type="checkbox"
+                          className="h-5.5 w-5.5 accent-bar-red"
+                          checked={outPick.includes(i.id)}
+                          onChange={() => setOutPick(outPick.includes(i.id) ? outPick.filter((x) => x !== i.id) : [...outPick, i.id])}
+                        />
+                        {i.quantity} × {i.drink_name} <span className="font-medium">{i.variant_label}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
                     <button
-                      key={p}
-                      onClick={() => (p === OUT_OF_STOCK ? setOutPick(order.order_items.length === 1 ? [order.order_items[0]!.id] : []) : void report(p))}
-                      className="min-h-11.5 rounded-md border-[1.5px] border-bar-red bg-white px-3.5 font-bold"
+                      disabled={outPick.length === 0}
+                      onClick={() =>
+                        void report(
+                          `Out of stock: ${order.order_items
+                            .filter((i) => outPick.includes(i.id))
+                            .map((i) => `${i.quantity} × ${i.drink_name} (${i.variant_label})`)
+                            .join(", ")}`.slice(0, 200),
+                        )
+                      }
+                      className="min-h-11.5 rounded-md bg-bar-red px-4 font-extrabold text-white disabled:opacity-45"
                     >
-                      {p}
+                      Report {outPick.length || ""} out of stock
                     </button>
-                  ))}
-                </div>
-              </>
-            )}
-            <span className="text-sm font-medium">This flags the order for a manager to refund. It stays on the screen until they clear it.</span>
-          </div>
+                    <button onClick={() => setOutPick(null)} className="min-h-11.5 rounded-md border-[1.5px] border-bar-red bg-white px-3.5 font-bold">
+                      Back
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <span>What's wrong with this order?</span>
+                  <div className="flex flex-wrap gap-2">
+                    {PROBLEMS.map((p) => (
+                      <button
+                        key={p}
+                        onClick={() => (p === OUT_OF_STOCK ? setOutPick(order.order_items.length === 1 ? [order.order_items[0]!.id] : []) : void report(p))}
+                        className="min-h-11.5 rounded-md border-[1.5px] border-bar-red bg-white px-3.5 font-bold"
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+              <span className="text-sm font-medium">This flags the order for a manager to refund. It stays on the screen until they clear it.</span>
+            </div>
+          </Sheet>
         )}
         {panel === "table" && (
-          <div className="flex flex-col gap-2.5 rounded-[10px] border-2 border-line bg-white p-3.5">
-            <span className="font-semibold text-forest">Move this order to which table?</span>
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(64px,1fr))] gap-2">
-              {tables.map((tb) => (
-                <button
-                  key={tb.id}
-                  disabled={tb.label === order.table_label}
-                  onClick={() => void moveTo(tb)}
-                  className="min-h-12 rounded-md border border-line bg-paper text-lg font-bold text-forest tabular-nums disabled:bg-forest disabled:text-ivory"
-                >
-                  {tb.label}
-                </button>
-              ))}
+          <Sheet title="Wrong table?" onClose={() => setPanel("none")}>
+            <div className="flex flex-col gap-2.5 rounded-[10px] border-2 border-line bg-white p-3.5">
+              <span className="font-semibold text-forest">Move this order to which table?</span>
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(64px,1fr))] gap-2">
+                {tables.map((tb) => (
+                  <button
+                    key={tb.id}
+                    disabled={tb.label === order.table_label}
+                    onClick={() => void moveTo(tb)}
+                    className="min-h-12 rounded-md border border-line bg-paper text-lg font-bold text-forest tabular-nums disabled:bg-forest disabled:text-ivory"
+                  >
+                    {tb.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          </Sheet>
         )}
       </div>
 
@@ -295,5 +299,37 @@ export default function OrderDetail({
         </div>
       </div>
     </section>
+  );
+}
+
+// Pops the problem and table options up over the order, so nobody has to
+// scroll to find them. Tap outside, the ✕ or Escape to close.
+function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return (
+    <div
+      className="fixed inset-0 z-30 flex items-end justify-center bg-[rgba(5,14,10,.6)] p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] sm:items-center sm:p-6"
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        onClick={(e) => e.stopPropagation()}
+        className="flex max-h-[85dvh] w-full max-w-[600px] flex-col gap-3 overflow-y-auto rounded-xl bg-ivory p-4.5 shadow-2xl"
+      >
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-2xl font-semibold text-forest">{title}</h2>
+          <button onClick={onClose} aria-label="Close" className="h-11 w-11 shrink-0 rounded-full border-2 border-line text-muted">
+            ✕
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
   );
 }

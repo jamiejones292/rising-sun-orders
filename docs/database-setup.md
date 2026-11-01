@@ -78,7 +78,7 @@ Run them in date order. Each one is all-or-nothing.
 | `20261101000011_delete_unused_drinks.sql` | Delete button on the Drinks page, for drinks that have never been ordered | Done |
 | `20261102000012_sales_stats.sql` | Sales page in the admin site (top drinks by day, week or month) | Done |
 | `20261102000013_out_of_stock_items.sql` | Reporting a drink out of stock switches it off on the menu, and the order can be finished without it | Done |
-| `20261103000014_review_fixes.sql` | Fixes from the full review: correct Sales takings and refunds, refunded orders can't be reopened, out-of-stock drinks can't be ticked, test orders limited to 20 a minute | Not yet |
+| `20261103000014_review_fixes.sql` | Fixes from the full review: correct Sales takings and refunds, refunded orders can't be reopened, out-of-stock drinks can't be ticked, test orders limited to 20 a minute | Done |
 
 ## Trying the bar screen with a test order
 Real orders arrive once payments are set up. To see how the bar screen behaves before then,

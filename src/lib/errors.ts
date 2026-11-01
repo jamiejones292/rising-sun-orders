@@ -23,6 +23,8 @@ export function friendlyError(err: unknown): string {
   for (const [code, text] of Object.entries(MESSAGES)) {
     if (raw.includes(code)) return text;
   }
+  // PostgREST: the database doesn't have this function yet (an update not run).
+  if (/PGRST202|Could not find the function/i.test(raw)) return "This needs a database update that hasn't been run yet. Check docs/database-setup.md.";
   if (/duplicate key|already exists/i.test(raw)) return "That name or number is already in use.";
   if (/violates check constraint/i.test(raw)) return "One of the values isn't allowed. Check the form and try again.";
   if (/permission denied|row-level security/i.test(raw)) return "Your account isn't allowed to do that.";

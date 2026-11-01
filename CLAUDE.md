@@ -133,6 +133,9 @@ architecture changes, and never ask for secrets in chat.
   `venue_settings.test_orders_until` is in the future (owner's 2-hour button), marks orders
   `payment_provider = 'test'`; `admin_delete_test_orders()` clears them. Test mode ignores
   ordering hours in the UI. Bar shows "TEST ORDER · NOT PAID".
+  The confirm screen's test panel shows stand-in "Pay £x with Apple Pay / Google Pay / card"
+  buttons (text only, no brand logos, marked TEST) that all place the same test order; the
+  real provider's wallet buttons replace them.
 - Recent orders / "Same again" (`history.ts`, `RecentOrders.tsx`): last 10 orders for 7 days
   in localStorage `rs-orders-v1` (ids only, no accounts). Only shown once the server says
   `payment_status = 'paid'` (set by the order page, re-checked via `get_order_tracking` each

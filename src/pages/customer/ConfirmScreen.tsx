@@ -4,6 +4,13 @@ import { formatPence } from "../../lib/money";
 // Step 2 of checkout: the big table confirmation. Payment plugs in here once
 // the payment provider is chosen; until then customers are asked to order at
 // the bar, so no unpaid order can ever reach the bar screen.
+// Test mode only: look like the real payment step, but just place a test order.
+const TEST_METHODS = [
+  { label: "Apple Pay", className: "bg-black text-white" },
+  { label: "Google Pay", className: "border-2 border-ink bg-white text-ink" },
+  { label: "card", className: "border border-forest bg-forest text-ivory" },
+];
+
 export default function ConfirmScreen({
   table,
   drinks,
@@ -17,7 +24,7 @@ export default function ConfirmScreen({
   onChangeTable: () => void;
   onPlaceTestOrder: (() => Promise<string | null>) | null;
 }) {
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   return (
     <div className="gutter flex flex-col gap-5 py-5">
@@ -44,20 +51,28 @@ export default function ConfirmScreen({
 
       {onPlaceTestOrder ? (
         <div className="flex flex-col gap-3 rounded-md border-2 border-dashed border-gold bg-paper p-4.5">
-          <p className="font-caps text-[0.72rem] tracking-[0.2em] text-gold-ink uppercase">Test mode</p>
-          <p className="text-muted">No payment is taken. The order goes straight to the bar screen marked as a test.</p>
+          <p className="font-caps text-[0.72rem] tracking-[0.2em] text-gold-ink uppercase">Test mode · no money is taken</p>
+          <p className="text-muted">
+            These buttons show where Apple Pay, Google Pay and card payments will go. Any of them sends the order straight to the bar,
+            marked as a test.
+          </p>
           {error && <p className="text-sm font-semibold text-alert">{error}</p>}
-          <button
-            disabled={busy}
-            onClick={async () => {
-              setBusy(true);
-              setError(await onPlaceTestOrder());
-              setBusy(false);
-            }}
-            className="min-h-14 rounded border border-forest bg-forest text-lg font-bold text-ivory disabled:opacity-60"
-          >
-            {busy ? "Sending to the bar…" : "Place test order (no payment)"}
-          </button>
+          {/* Stand-ins for the real wallet buttons, which the payment provider supplies. */}
+          {TEST_METHODS.map((m) => (
+            <button
+              key={m.label}
+              disabled={!!busy}
+              onClick={async () => {
+                setBusy(m.label);
+                setError(await onPlaceTestOrder());
+                setBusy(null);
+              }}
+              className={`flex min-h-14 items-center justify-center gap-2 rounded text-lg font-semibold disabled:opacity-60 ${m.className}`}
+            >
+              {busy === m.label ? "Confirming payment…" : `Pay ${formatPence(totalPence)} with ${m.label}`}
+              <span className="rounded-sm bg-gold px-1.5 py-0.5 text-[0.65rem] font-bold tracking-wider text-white">TEST</span>
+            </button>
+          ))}
         </div>
       ) : (
         <div role="status" className="flex flex-col gap-2 rounded-md border border-gold bg-paper p-4.5">

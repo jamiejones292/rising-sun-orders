@@ -38,6 +38,13 @@ const REASONS = [
   "Other",
 ];
 
+// Staff-only screen: show the database's own message under an unrecognised
+// error, so a screenshot is enough to diagnose it.
+function withDetail(err: { message?: string; code?: string }): string {
+  const text = friendlyError(err);
+  return text.startsWith("Something went wrong") ? `${text} (Details: ${err.code ?? ""} ${err.message ?? ""})` : text;
+}
+
 const hm = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" });
 
 export default function RefundPanel({
@@ -122,7 +129,7 @@ export default function RefundPanel({
     // The refund deals with the reported problem, so clear the flag too.
     if (!err && order.problem_reason) await client.rpc("staff_clear_problem", { p_order_id: order.id });
     setBusy(false);
-    if (err) return setError(friendlyError(err));
+    if (err) return setError(withDetail(err));
     const full = amount === left;
     toast(`Test refund of ${formatPence(amount)} on order #${order.order_number}${full ? ". Order fully refunded." : ""}`);
     onDone();

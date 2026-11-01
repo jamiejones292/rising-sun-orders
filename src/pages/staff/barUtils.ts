@@ -12,7 +12,9 @@ export const waitLevel = (o: BarOrder, amber: number, red: number): "ok" | "ambe
 export const hm = (iso: string) =>
   new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" });
 export const drinkCount = (o: BarOrder) => o.order_items.reduce((s, i) => s + i.quantity, 0);
-export const tickedCount = (o: BarOrder) => o.order_items.filter((i) => i.ticked).length;
+// Drinks to pour: everything except drinks reported out of stock.
+export const toPour = (o: BarOrder) => o.order_items.filter((i) => !i.out_of_stock);
+export const tickedCount = (o: BarOrder) => toPour(o).filter((i) => i.ticked).length;
 export const extrasText = (i: BarOrder["order_items"][number]) =>
   [i.variant_label, ...i.order_item_options.map((x) => x.option_label)].join(" · ");
 

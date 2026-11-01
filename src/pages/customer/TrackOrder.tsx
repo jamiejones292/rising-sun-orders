@@ -15,7 +15,7 @@ type Tracking = ReceiptState & {
   preparing_at: string | null;
   delivered_at: string | null;
   refunded_pence?: number; // missing before migration 010
-  items: { name: string; size: string; quantity: number; line_total_pence: number; no_ice: boolean; extras: string[] }[];
+  items: { name: string; size: string; quantity: number; line_total_pence: number; no_ice: boolean; extras: string[]; out_of_stock?: boolean }[];
 };
 
 // When the bar taps ORDER FULFILLED the drinks are on their way; the page shows
@@ -154,6 +154,7 @@ export default function TrackOrder() {
             <div>
               <div className="font-semibold text-forest">
                 {it.quantity} × {it.name}
+                {it.out_of_stock && <span className="ml-2 rounded-sm bg-[#fbede7] px-1.5 py-0.5 text-xs font-bold text-alert">Out of stock</span>}
               </div>
               <div className="text-sm text-muted">{[it.size, ...it.extras, it.no_ice ? "No ice" : ""].filter(Boolean).join(" · ")}</div>
             </div>

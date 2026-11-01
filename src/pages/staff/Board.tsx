@@ -1,7 +1,7 @@
 import { formatPence } from "../../lib/money";
 import type { BarOrder } from "../../lib/types";
 import type { BarSettings } from "./useBarOrders";
-import { drinkCount, extrasText, hm, tickedCount, waitLevel, waitText } from "./barUtils";
+import { drinkCount, extrasText, hm, tickedCount, toPour, waitLevel, waitText } from "./barUtils";
 
 const NOICE = <span className="ml-1 inline-block rounded-sm bg-ink px-1.5 py-0.5 align-[1px] text-[0.7rem] font-extrabold tracking-wider text-white">NO ICE</span>;
 
@@ -49,7 +49,7 @@ export function OrderCards({
         // NEW until this iPad opens it, or anyone on any iPad starts ticking it.
         const isNew = !seen.has(o.id) && o.fulfilment_status === "new";
         const t = tickedCount(o);
-        const n = o.order_items.length;
+        const n = toPour(o).length;
         return (
           <button
             key={o.id}
@@ -102,13 +102,14 @@ export function OrderCards({
             )}
             <ul className="flex flex-col gap-1.5 border-t border-line px-4 py-2.5">
               {o.order_items.map((i) => (
-                <li key={i.id} className={`grid grid-cols-[44px_1fr] gap-1.5 ${i.ticked ? "text-bar-ok" : ""}`}>
+                <li key={i.id} className={`grid grid-cols-[44px_1fr] gap-1.5 ${i.out_of_stock ? "text-muted line-through" : i.ticked ? "text-bar-ok" : ""}`}>
                   <span className="font-extrabold whitespace-nowrap tabular-nums">
                     {i.quantity}×{i.ticked && " ✓"}
                   </span>
                   <span className="min-w-0 font-semibold">
                     {i.drink_name}
                     {i.no_ice && NOICE}
+                    {i.out_of_stock && <b className="ml-1.5 text-sm text-bar-red no-underline">OUT OF STOCK</b>}
                     <span className="block text-sm font-normal text-muted">{extrasText(i)}</span>
                   </span>
                 </li>

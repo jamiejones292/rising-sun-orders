@@ -114,7 +114,11 @@ architecture changes, and never ask for secrets in chat.
 - Problems are flagged with `staff_report_problem` / cleared with `staff_clear_problem`
   (migration 003). "An item is out of stock" makes staff tick the drinks; the reason reads
   `Out of stock: 2 × Brains SA (Pint), …`, which `RefundPanel` uses to pre-tick lines (until a
-  refund is made). Managers are alerted only on the admin Overview (owner's choice): a live
+  refund is made). With migration 013 the bar calls `staff_report_out_of_stock(order, item_ids)`
+  instead: sets `order_items.out_of_stock` (no tick needed; `staff_fulfil_order` requires the
+  rest ticked and at least one ticked), switches the whole drink off on the menu whatever the
+  bar-stock setting says, and writes the same reason text. The bar falls back to
+  `staff_report_problem` if the function is missing. Managers are alerted only on the admin Overview (owner's choice): a live
   "problems reported by the bar" panel with Refund/Clear, and "(n)" in the tab title.
 - Refunds (`RefundPanel.tsx`, bar admin → Refunds, or Refund on a reported problem): pick
   drinks or an amount plus a policy reason; `staff_refund_order(id, pence, reason)` (migration

@@ -4,7 +4,7 @@ import { friendlyError } from "../../lib/errors";
 import { formatPence } from "../../lib/money";
 import type { BarOrder, VenueTable } from "../../lib/types";
 import { useToast } from "../../components/ui";
-import { drinkCount, extrasText, hm, tickedCount, waitText } from "./barUtils";
+import { drinkCount, extrasText, hm, tickedCount, toPour, waitText } from "./barUtils";
 
 const CHECK = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3.2} strokeLinecap="round" strokeLinejoin="round" className="h-7.5 w-7.5" aria-hidden="true">
@@ -37,8 +37,9 @@ export default function OrderDetail({
   const backRef = useRef<HTMLButtonElement>(null);
   const fulfilRef = useRef<HTMLButtonElement>(null);
   const t = tickedCount(order);
-  const n = order.order_items.length;
-  const all = t === n;
+  const n = toPour(order).length;
+  const gone = order.order_items.length - n;
+  const all = n > 0 && t === n;
   const alcohol = order.order_items.some((i) => i.drinks?.contains_alcohol);
 
   useEffect(() => {
@@ -79,6 +80,25 @@ export default function OrderDetail({
       return toast(friendlyError(error), { error: true });
     }
     onFulfilled(order);
+  }
+
+  // Marks the chosen drinks out of stock on this order (no tick needed) and
+  // switches them off on the menu. Before database update 013 it falls back
+  // to reporting the problem only.
+  async function reportOutOfStock(itemIds: string[]) {
+    const { error } = await supabase.rpc("staff_report_out_of_stock", { p_order_id: order.id, p_item_ids: itemIds });
+    if (error && /PGRST202|Could not find the function/i.test(error.message)) {
+      const names = order.order_items
+        .filter((i) => itemIds.includes(i.id))
+        .map((i) => `${i.quantity} × ${i.drink_name} (${i.variant_label})`)
+        .join(", ");
+      return report(`Out of stock: ${names}`.slice(0, 200));
+    }
+    if (error) return toast(friendlyError(error), { error: true });
+    setPanel("none");
+    setOutPick(null);
+    onChanged();
+    toast(`Marked out of stock and switched off on the menu. A manager will sort the refund (Table ${order.table_label}).`);
   }
 
   async function report(reason: string) {
@@ -142,7 +162,22 @@ export default function OrderDetail({
           </div>
         )}
         <ul className="flex flex-col gap-2.5">
-          {order.order_items.map((i) => (
+          {order.order_items.map((i) =>
+            i.out_of_stock ? (
+              <li key={i.id}>
+                <div className="grid min-h-22 w-full grid-cols-[56px_64px_minmax(0,1fr)] items-center gap-3.5 rounded-[10px] border-2 border-dashed border-bar-red bg-bar-red-soft p-4 text-left">
+                  <span className="grid h-13 w-13 place-items-center rounded-lg border-[3px] border-bar-red bg-white text-2xl font-extrabold text-bar-red">✕</span>
+                  <span className="text-[2rem] font-extrabold text-muted tabular-nums line-through">{i.quantity}×</span>
+                  <span className="min-w-0">
+                    <span className="text-xl font-bold text-muted line-through">{i.drink_name}</span>
+                    <span className="ml-1.5 inline-block rounded-sm bg-bar-red px-2 py-0.5 align-[2px] text-sm font-extrabold tracking-wider text-white">
+                      OUT OF STOCK · DON'T POUR
+                    </span>
+                    <span className="mt-0.5 block text-muted">{extrasText(i)}</span>
+                  </span>
+                </div>
+              </li>
+            ) : (
             <li key={i.id}>
               <button
                 role="checkbox"
@@ -167,11 +202,12 @@ export default function OrderDetail({
                 </span>
               </button>
             </li>
-          ))}
+            ),
+          )}
         </ul>
         <div className="flex justify-between border-t border-line px-1 py-1.5 text-muted tabular-nums">
           <span>
-            {drinkCount(order)} drinks in {n} line{n === 1 ? "" : "s"}
+            {drinkCount(order)} drinks in {order.order_items.length} line{order.order_items.length === 1 ? "" : "s"}
           </span>
           <span>
             Total paid <b className="text-forest">{formatPence(order.total_pence)}</b>
@@ -185,7 +221,7 @@ export default function OrderDetail({
                 <>
                   <span>Which drinks are out of stock?</span>
                   <div className="flex flex-col gap-1.5">
-                    {order.order_items.map((i) => (
+                    {toPour(order).map((i) => (
                       <label key={i.id} className="flex min-h-11.5 items-center gap-3 rounded-md border-[1.5px] border-bar-red bg-white px-3.5 font-bold">
                         <input
                           type="checkbox"
@@ -200,14 +236,7 @@ export default function OrderDetail({
                   <div className="flex flex-wrap gap-2">
                     <button
                       disabled={outPick.length === 0}
-                      onClick={() =>
-                        void report(
-                          `Out of stock: ${order.order_items
-                            .filter((i) => outPick.includes(i.id))
-                            .map((i) => `${i.quantity} × ${i.drink_name} (${i.variant_label})`)
-                            .join(", ")}`.slice(0, 200),
-                        )
-                      }
+                      onClick={() => void reportOutOfStock(outPick)}
                       className="min-h-11.5 rounded-md bg-bar-red px-4 font-extrabold text-white disabled:opacity-45"
                     >
                       Report {outPick.length || ""} out of stock
@@ -224,7 +253,7 @@ export default function OrderDetail({
                     {PROBLEMS.map((p) => (
                       <button
                         key={p}
-                        onClick={() => (p === OUT_OF_STOCK ? setOutPick(order.order_items.length === 1 ? [order.order_items[0]!.id] : []) : void report(p))}
+                        onClick={() => (p === OUT_OF_STOCK ? setOutPick(toPour(order).length === 1 ? [toPour(order)[0]!.id] : []) : void report(p))}
                         className="min-h-11.5 rounded-md border-[1.5px] border-bar-red bg-white px-3.5 font-bold"
                       >
                         {p}
@@ -233,7 +262,11 @@ export default function OrderDetail({
                   </div>
                 </>
               )}
-              <span className="text-sm font-medium">This flags the order for a manager to refund. It stays on the screen until they clear it.</span>
+              <span className="text-sm font-medium">
+                {outPick
+                  ? "They'll be switched off on the menu straight away and won't need ticking to finish the order. A manager sorts the refund."
+                  : "This flags the order for a manager to refund. It stays on the screen until they clear it."}
+              </span>
             </div>
           </Sheet>
         )}
@@ -266,6 +299,7 @@ export default function OrderDetail({
             </span>
             <span className="tabular-nums">
               {t} of {n} ticked
+              {gone > 0 && ` · ${gone} out of stock`}
             </span>
           </div>
           {all ? (
@@ -280,7 +314,9 @@ export default function OrderDetail({
             </button>
           ) : (
             <div className="flex min-h-18 items-center justify-center rounded-[10px] border-2 border-dashed border-line px-4 text-center font-bold text-muted">
-              Tick every drink to finish this order ({n - t} to go)
+              {n === 0
+                ? "Every drink is out of stock. A manager will refund this order."
+                : `Tick every drink to finish this order (${n - t} to go)`}
             </div>
           )}
           <div className="flex flex-wrap justify-center gap-x-4.5 gap-y-2 [&_button]:p-1.5 [&_button]:font-semibold [&_button]:text-muted [&_button]:underline [&_button]:underline-offset-3">

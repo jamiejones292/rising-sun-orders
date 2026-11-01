@@ -3,7 +3,7 @@ import { supabase } from "../../lib/supabase";
 import type { BarOrder } from "../../lib/types";
 
 const ORDER_SELECT =
-  "id, order_number, table_label, total_pence, payment_method_label, paid_at, fulfilment_status, delivered_at, problem_reason, refunded_pence, version, order_items(id, drink_name, variant_label, quantity, no_ice, ticked, sort_order, order_item_options(option_label, group_name), drinks(contains_alcohol))";
+  "id, order_number, table_label, total_pence, payment_method_label, paid_at, fulfilment_status, delivered_at, problem_reason, refunded_pence, version, order_items(*, order_item_options(option_label, group_name), drinks(contains_alcohol))";
 
 // How often to re-check even when live updates are working: the safety net for
 // an iPad that dozed off or missed a message.

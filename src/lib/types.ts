@@ -116,6 +116,7 @@ export type BarOrderItem = {
   quantity: number;
   no_ice: boolean;
   ticked: boolean;
+  out_of_stock?: boolean; // reported out of stock (migration 013); doesn't need ticking
   sort_order: number;
   order_item_options: { option_label: string; group_name: string }[];
   drinks: { contains_alcohol: boolean } | null;

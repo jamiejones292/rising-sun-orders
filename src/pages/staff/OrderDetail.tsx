@@ -12,7 +12,8 @@ const CHECK = (
   </svg>
 );
 
-const PROBLEMS = ["An item is out of stock", "Refusing service: no ID", "Refusing service: customer intoxicated", "Can't find the table"];
+const OUT_OF_STOCK = "An item is out of stock";
+const PROBLEMS = [OUT_OF_STOCK, "Refusing service: no ID", "Refusing service: customer intoxicated", "Can't find the table"];
 
 export default function OrderDetail({
   order,
@@ -29,6 +30,8 @@ export default function OrderDetail({
 }) {
   const toast = useToast();
   const [panel, setPanel] = useState<"none" | "problem" | "table">("none");
+  // "Out of stock": which drinks on this order ran out (item ids), or null when not choosing.
+  const [outPick, setOutPick] = useState<string[] | null>(null);
   const [tables, setTables] = useState<VenueTable[]>([]);
   const [busy, setBusy] = useState(false);
   const backRef = useRef<HTMLButtonElement>(null);
@@ -82,8 +85,9 @@ export default function OrderDetail({
     const { error } = await supabase.rpc("staff_report_problem", { p_order_id: order.id, p_reason: reason });
     if (error) return toast(friendlyError(error), { error: true });
     setPanel("none");
+    setOutPick(null);
     onChanged();
-    toast(`Manager alerted: ${reason} (Table ${order.table_label})`);
+    toast(`Reported for a manager: ${reason} (Table ${order.table_label})`);
   }
 
   async function moveTo(table: VenueTable) {
@@ -176,14 +180,58 @@ export default function OrderDetail({
 
         {panel === "problem" && (
           <div className="flex flex-col gap-2.5 rounded-[10px] border-2 border-bar-red bg-bar-red-soft p-3.5 font-semibold text-bar-red">
-            <span>What's wrong with this order?</span>
-            <div className="flex flex-wrap gap-2">
-              {PROBLEMS.map((p) => (
-                <button key={p} onClick={() => void report(p)} className="min-h-11.5 rounded-md border-[1.5px] border-bar-red bg-white px-3.5 font-bold">
-                  {p}
-                </button>
-              ))}
-            </div>
+            {outPick ? (
+              <>
+                <span>Which drinks are out of stock?</span>
+                <div className="flex flex-col gap-1.5">
+                  {order.order_items.map((i) => (
+                    <label key={i.id} className="flex min-h-11.5 items-center gap-3 rounded-md border-[1.5px] border-bar-red bg-white px-3.5 font-bold">
+                      <input
+                        type="checkbox"
+                        className="h-5.5 w-5.5 accent-bar-red"
+                        checked={outPick.includes(i.id)}
+                        onChange={() => setOutPick(outPick.includes(i.id) ? outPick.filter((x) => x !== i.id) : [...outPick, i.id])}
+                      />
+                      {i.quantity} × {i.drink_name} <span className="font-medium">{i.variant_label}</span>
+                    </label>
+                  ))}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    disabled={outPick.length === 0}
+                    onClick={() =>
+                      void report(
+                        `Out of stock: ${order.order_items
+                          .filter((i) => outPick.includes(i.id))
+                          .map((i) => `${i.quantity} × ${i.drink_name} (${i.variant_label})`)
+                          .join(", ")}`.slice(0, 200),
+                      )
+                    }
+                    className="min-h-11.5 rounded-md bg-bar-red px-4 font-extrabold text-white disabled:opacity-45"
+                  >
+                    Report {outPick.length || ""} out of stock
+                  </button>
+                  <button onClick={() => setOutPick(null)} className="min-h-11.5 rounded-md border-[1.5px] border-bar-red bg-white px-3.5 font-bold">
+                    Back
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <span>What's wrong with this order?</span>
+                <div className="flex flex-wrap gap-2">
+                  {PROBLEMS.map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => (p === OUT_OF_STOCK ? setOutPick(order.order_items.length === 1 ? [order.order_items[0]!.id] : []) : void report(p))}
+                      className="min-h-11.5 rounded-md border-[1.5px] border-bar-red bg-white px-3.5 font-bold"
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
             <span className="text-sm font-medium">This flags the order for a manager to refund. It stays on the screen until they clear it.</span>
           </div>
         )}
@@ -242,7 +290,7 @@ export default function OrderDetail({
               </button>
             )}
             <button onClick={() => setPanel(panel === "table" ? "none" : "table")}>{panel === "table" ? "Cancel table change" : "Wrong table? Change it"}</button>
-            <button onClick={() => setPanel(panel === "problem" ? "none" : "problem")}>{panel === "problem" ? "Hide problem options" : "Problem with this order"}</button>
+            <button onClick={() => (setOutPick(null), setPanel(panel === "problem" ? "none" : "problem"))}>{panel === "problem" ? "Hide problem options" : "Problem with this order"}</button>
           </div>
         </div>
       </div>

@@ -105,7 +105,10 @@ architecture changes, and never ask for secrets in chat.
   manager admin section (elevated client), which also opens `DrinkEditor` to add, edit or
   archive a drink. `DrinkEditor` and `loadMenuData` take an optional client for this.
 - Problems are flagged with `staff_report_problem` / cleared with `staff_clear_problem`
-  (migration 003).
+  (migration 003). "An item is out of stock" makes staff tick the drinks; the reason reads
+  `Out of stock: 2 × Brains SA (Pint), …`, which `RefundPanel` uses to pre-tick lines (until a
+  refund is made). Managers are alerted only on the admin Overview (owner's choice): a live
+  "problems reported by the bar" panel with Refund/Clear, and "(n)" in the tab title.
 - Refunds (`RefundPanel.tsx`, bar admin → Refunds, or Refund on a reported problem): pick
   drinks or an amount plus a policy reason; `staff_refund_order(id, pence, reason)` (migration
   010, managers) only accepts `payment_provider = 'test'` for now (`refunds_not_live`), records

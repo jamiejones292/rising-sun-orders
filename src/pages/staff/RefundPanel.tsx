@@ -70,7 +70,15 @@ export default function RefundPanel({
       const o = data as unknown as RefundOrder;
       o.order_items.sort((a, b) => a.sort_order - b.sort_order);
       setOrder(o);
-      setPicked([]);
+      // Start from what the bar reported, until something has been refunded.
+      const problem = o.refunded_pence === 0 ? (o.problem_reason ?? "") : "";
+      setPicked(
+        problem.startsWith("Out of stock:")
+          ? o.order_items.filter((i) => problem.includes(`${i.quantity} × ${i.drink_name} (${i.variant_label})`)).map((i) => i.id)
+          : [],
+      );
+      if (problem.startsWith("Out of stock")) setReason("Out of stock");
+      else if (problem.startsWith("Refusing service")) setReason("Refused service (ID or intoxicated)");
       setOther("");
       setError(null);
     },

@@ -1,8 +1,11 @@
-import type { ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useAuth, isOwnerRole } from "../../lib/auth";
 import { useMenuData, useVenue } from "../../lib/adminData";
-import { Panel } from "../../components/ui";
+import { supabase } from "../../lib/supabase";
+import { friendlyError } from "../../lib/errors";
+import { Button, Panel, useToast } from "../../components/ui";
+import RefundPanel from "../staff/RefundPanel";
 import OrderingCard from "./OrderingCard";
 import { PageHeader } from "./AdminApp";
 import { isMixersCategory } from "./DrinkEditor";
@@ -12,6 +15,7 @@ export default function Overview() {
   const { data } = useMenuData();
   const venue = useVenue();
   const owner = isOwnerRole(profile);
+  const problems = useProblemOrders();
 
   // The "Mixers" category is hidden on purpose (mixer-only drinks), so it isn't
   // counted as a menu category or flagged; its drinks still show if out of stock.
@@ -42,6 +46,7 @@ export default function Overview() {
           onChanged={(p) => venue.setSettings({ ...venue.settings!, ordering_paused: p })}
         />
       )}
+      {problems.orders.length > 0 && <ProblemsPanel orders={problems.orders} onChanged={problems.reload} />}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Tile label="Drinks on the menu" value={onMenu.filter((d) => d.available).length} note={`${onMenu.length} in total`} />
         <Tile label="Out of stock" value={outOfStock.length} note="drinks or sizes switched off" />
@@ -83,9 +88,91 @@ export default function Overview() {
         )}
       </Panel>
       <p className="text-sm text-muted">
-        Orders, refunds, staff accounts and sales reports appear here once payments and the bar screen are built.
+        Sales reports and real card refunds arrive once payments are set up.
       </p>
     </>
+  );
+}
+
+type ProblemOrder = { id: string; order_number: number; table_label: string; problem_reason: string; problem_reported_at: string | null };
+
+// Orders the bar has flagged ("Problem with this order") and not yet cleared.
+// Live updates on orders, with a 30-second check as the safety net. The tab
+// title shows the count so it's noticed in a background tab.
+function useProblemOrders() {
+  const [orders, setOrders] = useState<ProblemOrder[]>([]);
+  const reload = useCallback(async () => {
+    const { data } = await supabase
+      .from("orders")
+      .select("id, order_number, table_label, problem_reason, problem_reported_at")
+      .not("problem_reason", "is", null)
+      .eq("payment_status", "paid")
+      .order("problem_reported_at");
+    if (data) setOrders(data as ProblemOrder[]);
+  }, []);
+  useEffect(() => {
+    void reload();
+    const id = window.setInterval(() => void reload(), 30_000);
+    const channel = supabase
+      .channel("admin-problems")
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => void reload())
+      .subscribe();
+    return () => {
+      window.clearInterval(id);
+      void supabase.removeChannel(channel);
+    };
+  }, [reload]);
+  useEffect(() => {
+    document.title = `${orders.length ? `(${orders.length}) ` : ""}Admin · The Rising Sun Inn`;
+    return () => {
+      document.title = "Admin · The Rising Sun Inn";
+    };
+  }, [orders.length]);
+  return { orders, reload };
+}
+
+function ProblemsPanel({ orders, onChanged }: { orders: ProblemOrder[]; onChanged: () => Promise<void> }) {
+  const toast = useToast();
+  const [refunding, setRefunding] = useState<string | null>(null);
+  const ago = (iso: string | null) => (iso ? `${Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60_000))} min ago` : "");
+
+  async function clear(o: ProblemOrder) {
+    const { error } = await supabase.rpc("staff_clear_problem", { p_order_id: o.id });
+    if (error) return toast(friendlyError(error), { error: true });
+    await onChanged();
+    toast(`Problem cleared on order #${o.order_number}`);
+  }
+
+  return (
+    <section className="flex flex-col gap-2 rounded-md border-2 border-alert bg-[#fbeae5] p-4.5">
+      <h2 className="text-2xl font-semibold text-alert">
+        {orders.length} problem{orders.length === 1 ? "" : "s"} reported by the bar
+      </h2>
+      <ul className="flex flex-col">
+        {orders.map((o) => (
+          <li key={o.id} className="flex flex-wrap items-center justify-between gap-3 border-t border-alert/25 py-2.5 first:border-t-0">
+            <span className="min-w-0">
+              <b className="text-forest tabular-nums">
+                #{o.order_number} · Table {o.table_label}
+              </b>{" "}
+              <small className="text-muted">{ago(o.problem_reported_at)}</small>
+              <br />
+              <span className="text-alert">{o.problem_reason}</span>
+            </span>
+            <span className="flex gap-2">
+              <Button small onClick={() => setRefunding(o.id)}>
+                Refund
+              </Button>
+              <Button variant="ghost" small onClick={() => void clear(o)}>
+                Clear
+              </Button>
+            </span>
+          </li>
+        ))}
+      </ul>
+      <small className="text-muted">Refunding clears the problem. Use Clear if it was sorted another way, e.g. a swap at the bar.</small>
+      {refunding && <RefundPanel client={supabase} orderId={refunding} onClose={() => setRefunding(null)} onDone={() => void onChanged()} />}
+    </section>
   );
 }
 

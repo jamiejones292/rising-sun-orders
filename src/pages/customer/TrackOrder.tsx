@@ -14,6 +14,7 @@ type Tracking = ReceiptState & {
   paid_at: string | null;
   preparing_at: string | null;
   delivered_at: string | null;
+  refunded_pence?: number; // missing before migration 010
   items: { name: string; size: string; quantity: number; line_total_pence: number; no_ice: boolean; extras: string[] }[];
 };
 
@@ -90,12 +91,21 @@ export default function TrackOrder() {
         <span className="font-caps text-[0.72rem] tracking-[0.22em] text-gold-ink uppercase">The Rising Sun Inn</span>
         <h1 className="text-[2.3rem]">{deliveredAt ? "Your drinks are here" : fulfilledAt ? "Your drinks are on their way" : "Thank you for your order"}</h1>
       </div>
-      {order.payment_status !== "paid" && (
+      {order.payment_status !== "paid" && order.payment_status !== "refunded" && (
         <p className="rounded border border-alert bg-[#fbede7] p-3 text-alert">
           {order.payment_status === "pending" ? "We're still waiting for your payment to be confirmed." : "This order hasn't been paid."}
         </p>
       )}
-      {status === "cancelled" && (
+      {(order.refunded_pence ?? 0) > 0 && (
+        <p className="rounded border border-gold bg-paper p-3 text-forest">
+          <b>
+            {order.payment_status === "refunded" ? "Refunded in full" : "Part refunded"}: {formatPence(order.refunded_pence!)}
+          </b>
+          <br />
+          <span className="text-sm text-muted">It goes back to the card or wallet you paid with and usually shows within 3 to 5 working days.</span>
+        </p>
+      )}
+      {status === "cancelled" && order.payment_status !== "refunded" && (
         <p className="rounded border border-alert bg-[#fbede7] p-3 text-alert">This order was cancelled. Please speak to the bar team.</p>
       )}
       <div className="grid grid-cols-3 border-y border-gold">

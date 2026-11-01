@@ -131,6 +131,7 @@ export type BarOrder = {
   fulfilment_status: FulfilmentStatus;
   delivered_at: string | null;
   problem_reason: string | null;
+  refunded_pence: number;
   version: number;
   order_items: BarOrderItem[];
 };

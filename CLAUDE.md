@@ -105,7 +105,14 @@ architecture changes, and never ask for secrets in chat.
   manager admin section (elevated client), which also opens `DrinkEditor` to add, edit or
   archive a drink. `DrinkEditor` and `loadMenuData` take an optional client for this.
 - Problems are flagged with `staff_report_problem` / cleared with `staff_clear_problem`
-  (migration 003). Refunds wait for the payments stage.
+  (migration 003).
+- Refunds (`RefundPanel.tsx`, bar admin → Refunds, or Refund on a reported problem): pick
+  drinks or an amount plus a policy reason; `staff_refund_order(id, pence, reason)` (migration
+  010, managers) only accepts `payment_provider = 'test'` for now (`refunds_not_live`), records
+  a `refunds` row, adds to `refunded_pence`. Partial refunds keep `payment_status = 'paid'`
+  (so bar functions/queries keep working; `partially_refunded` is unused); a full refund sets
+  `refunded` and cancels an order not yet delivered. Clears the problem flag. Real refunds
+  must go through the provider from a Netlify function and reuse this panel.
 
 ## Customer pages (`src/pages/customer`)
 - `CustomerRoot` shows the "being set up" page unless `venue_settings.customer_menu_live`

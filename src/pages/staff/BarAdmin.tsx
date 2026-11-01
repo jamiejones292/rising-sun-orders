@@ -8,6 +8,7 @@ import type { BarOrder, Drink, StaffProfile } from "../../lib/types";
 import { useToast } from "../../components/ui";
 import DrinkEditor from "../admin/DrinkEditor";
 import StockList from "./StockList";
+import RefundPanel from "./RefundPanel";
 
 const LOCK_AFTER_S = 300;
 
@@ -150,6 +151,8 @@ function AdminPanel({
   const toast = useToast();
   const [left, setLeft] = useState(LOCK_AFTER_S);
   const [stockKey, setStockKey] = useState(0);
+  // Refund drawer: an order's id, "find" to look one up by number, or closed.
+  const [refunding, setRefunding] = useState<string | null>(null);
   // The drink editor: the menu it needs, and which drink ("new" for a new one).
   const [menu, setMenu] = useState<MenuData | null>(null);
   const [editing, setEditing] = useState<Drink | "new" | null>(null);
@@ -272,14 +275,23 @@ function AdminPanel({
                     <br />
                     <small className="text-bar-red">{o.problem_reason}</small>
                   </span>
-                  <button onClick={() => void clearProblem(o)} className="min-h-10 shrink-0 rounded-lg border-2 border-line bg-white px-3 text-sm font-extrabold text-forest">
-                    Clear
-                  </button>
+                  <span className="flex shrink-0 gap-1.5">
+                    <button onClick={() => setRefunding(o.id)} className="min-h-10 rounded-lg border-2 border-line bg-white px-3 text-sm font-extrabold text-forest">
+                      Refund
+                    </button>
+                    <button onClick={() => void clearProblem(o)} className="min-h-10 rounded-lg border-2 border-line bg-white px-3 text-sm font-extrabold text-forest">
+                      Clear
+                    </button>
+                  </span>
                 </div>
               ))}
-              <small className="text-muted">Refunds arrive once card payments are set up.</small>
             </>
           )}
+          <h3 className="mt-2 font-sans text-base font-bold text-forest">Refunds</h3>
+          <button onClick={() => setRefunding("find")} className="min-h-11 self-start rounded-lg border-2 border-line bg-white px-4 font-extrabold text-forest">
+            Refund an order
+          </button>
+          <small className="text-muted">Practice on test orders for now. Card refunds arrive once payments are set up.</small>
         </section>
 
         <section className="flex min-w-0 flex-col gap-1.5 rounded-[10px] border border-line bg-white px-4 py-3.5">
@@ -345,6 +357,14 @@ function AdminPanel({
         </section>
       </div>
 
+      {refunding && (
+        <RefundPanel
+          client={client}
+          orderId={refunding === "find" ? null : refunding}
+          onClose={() => setRefunding(null)}
+          onDone={onChanged}
+        />
+      )}
       {editing && menu && (
         <DrinkEditor
           client={client}

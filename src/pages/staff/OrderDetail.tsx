@@ -132,6 +132,11 @@ export default function OrderDetail({
             Problem reported: {order.problem_reason}. A manager will sort out any refund.
           </div>
         )}
+        {order.refunded_pence > 0 && (
+          <div className="rounded-md bg-bar-amber-soft px-3.5 py-2.5 font-bold text-[#7a4b00]">
+            {formatPence(order.refunded_pence)} of this order has been refunded. Check with the manager which drinks to leave out.
+          </div>
+        )}
         <ul className="flex flex-col gap-2.5">
           {order.order_items.map((i) => (
             <li key={i.id}>

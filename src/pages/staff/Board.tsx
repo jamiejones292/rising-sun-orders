@@ -1,3 +1,4 @@
+import { formatPence } from "../../lib/money";
 import type { BarOrder } from "../../lib/types";
 import type { BarSettings } from "./useBarOrders";
 import { drinkCount, extrasText, hm, tickedCount, waitLevel, waitText } from "./barUtils";
@@ -93,6 +94,11 @@ export function OrderCards({
             )}
             {o.problem_reason && (
               <div className="mx-4 mb-2.5 rounded bg-bar-red-soft px-2.5 py-1.5 text-sm font-bold text-bar-red">Problem: {o.problem_reason}</div>
+            )}
+            {o.refunded_pence > 0 && (
+              <div className="mx-4 mb-2.5 rounded bg-bar-amber-soft px-2.5 py-1.5 text-sm font-bold text-[#7a4b00]">
+                {formatPence(o.refunded_pence)} refunded. Check with the manager which drinks to leave out.
+              </div>
             )}
             <ul className="flex flex-col gap-1.5 border-t border-line px-4 py-2.5">
               {o.order_items.map((i) => (

@@ -74,6 +74,7 @@ Run them in date order. Each one is all-or-nothing.
 | `20261030000007_mixers_on_spirits.sql` | Gives every spirit the "Add a mixer" options | Done |
 | `20261030000008_email_retention.sql` | Deletes receipt email addresses after 90 days (run daily by the site), as the privacy notice promises | Done |
 | `20261031000009_linked_mixers.sql` | Mixers follow their soft drink's stock (Coke off means no vodka and Coke), and stock switches for tonics and other extras | Done |
+| `20261101000010_test_refunds.sql` | Practice refunds on test orders (bar screen → Admin → Refunds), and refunds shown on the customer's order page | Not yet |
 
 ## Trying the bar screen with a test order
 Real orders arrive once payments are set up. To see how the bar screen behaves before then,

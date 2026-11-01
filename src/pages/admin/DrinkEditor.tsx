@@ -20,7 +20,7 @@ export function parsePrice(text: string): number | null {
 }
 
 // Mixer price in pounds ("1.20", "£1", empty for free) to whole pence, or null.
-function parseMixerPrice(text: string): number | null {
+export function parseMixerPrice(text: string): number | null {
   const t = text.replace(/[£,\s]/g, "");
   if (t === "") return 0;
   if (!/^\d{1,3}(\.\d{1,2})?$/.test(t)) return null;

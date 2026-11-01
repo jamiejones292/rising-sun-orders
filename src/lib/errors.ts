@@ -7,6 +7,11 @@ const MESSAGES: Record<string, string> = {
   needs_a_size: "Add at least one size with a price.",
   drink_not_found: "That drink no longer exists. Refresh the page.",
   size_not_found: "One of the sizes changed elsewhere. Refresh the page and try again.",
+  refunds_not_live: "Card refunds arrive once payments are set up. For now only test orders can be refunded.",
+  already_refunded: "This order has already been refunded in full.",
+  bad_refund_amount: "That's more than is left to refund on this order.",
+  reason_required: "Choose or type a reason.",
+  order_not_found: "That order can't be found. Refresh and try again.",
   option_not_found: "That mixer or extra changed elsewhere. Close this and open it again.",
 };
 

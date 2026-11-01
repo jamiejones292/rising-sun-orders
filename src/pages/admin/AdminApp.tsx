@@ -7,6 +7,7 @@ import Overview from "./Overview";
 import Drinks from "./Drinks";
 import Categories from "./Categories";
 import Extras from "./Extras";
+import Sales from "./Sales";
 import Tables from "./Tables";
 import Settings from "./Settings";
 
@@ -14,6 +15,7 @@ const ICONS: Record<string, string> = {
   overview: '<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
   drinks: '<path d="M6 3h12l-1.5 17a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1z"/><path d="M6.5 8h11"/>',
   categories: '<path d="M4 6h16M4 12h16M4 18h10"/>',
+  sales: '<path d="M4 20h16"/><path d="M7 16v-5M12 16V6M17 16v-8"/>',
   extras: '<path d="M7 3h10l-1 6H8z"/><path d="M12 9v9"/><path d="M8 21h8"/><circle cx="17.5" cy="5.5" r="1.5"/>',
   tables: '<rect x="4" y="4" width="16" height="16" rx="1"/><path d="M9 9h2v2H9zM13 13h2v2h-2z"/>',
   settings:
@@ -23,6 +25,7 @@ const ICONS: Record<string, string> = {
 const NAV = [
   { to: "/admin", key: "overview", label: "Overview", owner: false, end: true },
   { to: "/admin/drinks", key: "drinks", label: "Drinks & stock", owner: false },
+  { to: "/admin/sales", key: "sales", label: "Sales", owner: false },
   { to: "/admin/extras", key: "extras", label: "Mixers & extras", owner: false },
   { to: "/admin/categories", key: "categories", label: "Categories", owner: false },
   { to: "/admin/tables", key: "tables", label: "Tables & QR code", owner: true },
@@ -128,6 +131,7 @@ function AdminShell() {
             <Route index element={<Overview />} />
             <Route path="drinks" element={<Drinks />} />
             <Route path="extras" element={<Extras />} />
+            <Route path="sales" element={<Sales />} />
             <Route path="categories" element={<Categories />} />
             <Route path="tables" element={owner ? <Tables /> : <Navigate to="/admin" replace />} />
             <Route path="settings" element={owner ? <Settings /> : <Navigate to="/admin" replace />} />

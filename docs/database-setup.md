@@ -76,6 +76,7 @@ Run them in date order. Each one is all-or-nothing.
 | `20261031000009_linked_mixers.sql` | Mixers follow their soft drink's stock (Coke off means no vodka and Coke), and stock switches for tonics and other extras | Done |
 | `20261101000010_test_refunds.sql` | Practice refunds on test orders (bar screen → Admin → Refunds), and refunds shown on the customer's order page | Done |
 | `20261101000011_delete_unused_drinks.sql` | Delete button on the Drinks page, for drinks that have never been ordered | Done |
+| `20261102000012_sales_stats.sql` | Sales page in the admin site (top drinks by day, week or month) | Not yet |
 
 ## Trying the bar screen with a test order
 Real orders arrive once payments are set up. To see how the bar screen behaves before then,

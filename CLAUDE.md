@@ -43,6 +43,9 @@ architecture changes, and never ask for secrets in chat.
   remote prank orders ever become a problem.
 - QR: plain static code to `https://drinksorder.app` (files in `design/qr/`); no paid
   dynamic QR service, since the domain itself is the redirect point.
+- Accepted for now (owner, review Nov 2026): the bar account can read every column of paid
+  orders, including `customer_email` (column grants risk breaking Realtime); the site no
+  longer promises refund emails; revisit both when the payment provider is chosen.
 - Still open: tracking stages (proposed Received → Preparing → Delivered), policy for
   orders missing from the iPad, minimum order.
 - Every spirit offers "Add a mixer" (migration 007 attached it to existing spirits; the drink

@@ -5,6 +5,7 @@ import { useMenuData, useVenue } from "../../lib/adminData";
 import { Panel } from "../../components/ui";
 import OrderingCard from "./OrderingCard";
 import { PageHeader } from "./AdminApp";
+import { isMixersCategory } from "./DrinkEditor";
 
 export default function Overview() {
   const { profile } = useAuth();
@@ -12,10 +13,15 @@ export default function Overview() {
   const venue = useVenue();
   const owner = isOwnerRole(profile);
 
+  // The "Mixers" category is hidden on purpose (mixer-only drinks), so it isn't
+  // counted as a menu category or flagged; its drinks still show if out of stock.
+  const menuCats = data?.categories.filter((c) => !isMixersCategory(c.name)) ?? [];
+  const mixerOnly = new Set(data?.categories.filter((c) => isMixersCategory(c.name)).map((c) => c.id));
   const live = data?.drinks.filter((d) => !d.archived_at) ?? [];
+  const onMenu = live.filter((d) => !mixerOnly.has(d.category_id));
   const outOfStock = live.filter((d) => !d.available || d.drink_variants.some((v) => !v.archived_at && !v.available));
   const tablesOff = venue.tables.filter((t) => !t.active);
-  const hiddenCats = data?.categories.filter((c) => !c.visible) ?? [];
+  const hiddenCats = menuCats.filter((c) => !c.visible);
   const greeting = new Date().getHours() < 12 ? "Bore da" : new Date().getHours() < 18 ? "Prynhawn da" : "Noswaith dda";
 
   return (
@@ -37,10 +43,10 @@ export default function Overview() {
         />
       )}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Tile label="Drinks on the menu" value={live.filter((d) => d.available).length} note={`${live.length} in total`} />
+        <Tile label="Drinks on the menu" value={onMenu.filter((d) => d.available).length} note={`${onMenu.length} in total`} />
         <Tile label="Out of stock" value={outOfStock.length} note="drinks or sizes switched off" />
         <Tile label="Tables in use" value={venue.tables.filter((t) => t.active).length} note={`of ${venue.tables.length}`} />
-        <Tile label="Categories shown" value={(data?.categories.length ?? 0) - hiddenCats.length} note={`${hiddenCats.length} hidden`} />
+        <Tile label="Categories shown" value={menuCats.length - hiddenCats.length} note={`${hiddenCats.length} hidden`} />
       </div>
       <Panel title="Needs attention">
         {outOfStock.length + tablesOff.length + hiddenCats.length === 0 ? (

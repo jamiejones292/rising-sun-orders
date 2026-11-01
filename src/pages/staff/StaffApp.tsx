@@ -62,7 +62,7 @@ function BarScreen() {
     setAlert(fresh[fresh.length - 1]!);
     chime();
   }, []);
-  const { open, done, settings, loaded, connection, refresh, setOpen } = useBarOrders(onNewOrders);
+  const { open, done, settings, loaded, connection, refresh, setOpen, markTick, settleTick } = useBarOrders(onNewOrders);
 
   useEffect(() => {
     const id = window.setInterval(() => setClock(hm(new Date().toISOString())), 10_000);
@@ -104,7 +104,9 @@ function BarScreen() {
         orders.map((o) => ({ ...o, order_items: o.order_items.map((i) => (i.id === itemId ? { ...i, ticked: value } : i)) })),
       );
     patch(ticked);
+    markTick(itemId, ticked);
     const { error } = await supabase.rpc("staff_set_item_ticked", { p_item_id: itemId, p_ticked: ticked });
+    settleTick(itemId, !error);
     if (error) {
       patch(!ticked);
       toast(friendlyError(error), { error: true });

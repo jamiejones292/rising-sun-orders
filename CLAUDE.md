@@ -103,6 +103,10 @@ architecture changes, and never ask for secrets in chat.
   order_items and venue_settings, plus a 15-second poll and reload on wake/online as the
   safety net; "offline" banner if nothing has loaded for 45 seconds. Realtime confirmed
   working on the live site (owner's two-tablet test: orders arrived instantly).
+- Ticks are optimistic; `useBarOrders` keeps `pendingTicks` (markTick/settleTick) and overlays
+  them on any reload that started before the save finished, so a stale reload can't flip a
+  tick back. OrderDetail ignores a second tap on the same drink within 500 ms, and focuses
+  "All orders" only once (re-focusing on every render jumped the page to the top).
 - NEW marker: not opened on this iPad (localStorage) and still `fulfilment_status = new`.
 - The admin section signs a manager in on a separate, unsaved client
   (`createElevatedClient`) so the bar session stays put; locks after 5 minutes. Bar password

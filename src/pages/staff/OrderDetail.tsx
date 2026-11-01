@@ -40,7 +40,12 @@ export default function OrderDetail({
 
   // Tick a drink, then bring the next unticked one into view if it's hidden
   // behind the bottom bar or off the screen, so nothing is missed.
+  const lastTap = useRef<{ id: string; at: number } | null>(null);
   function tickAndShowNext(itemId: string, ticked: boolean) {
+    // Ignore a second tap on the same drink within half a second (an accidental double tap).
+    const now = Date.now();
+    if (lastTap.current?.id === itemId && now - lastTap.current.at < 500) return;
+    lastTap.current = { id: itemId, at: now };
     void onTick(itemId, ticked);
     if (!ticked) return;
     const next = toPour(order).find((i) => !i.ticked && i.id !== itemId);

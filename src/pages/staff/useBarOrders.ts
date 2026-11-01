@@ -45,12 +45,24 @@ export function useBarOrders(onNewOrders: (orders: BarOrder[]) => void) {
   const inFlight = useRef(false);
   const again = useRef(false);
 
+  // Ticks made on this iPad that a reload mustn't undo: kept until a reload
+  // that started after the save finished, so a stale reload can't flip them back.
+  const pendingTicks = useRef(new Map<string, { value: boolean; savedAt: number | null }>());
+  const markTick = useCallback((itemId: string, value: boolean) => {
+    pendingTicks.current.set(itemId, { value, savedAt: null });
+  }, []);
+  const settleTick = useCallback((itemId: string, saved: boolean) => {
+    if (saved) pendingTicks.current.set(itemId, { ...pendingTicks.current.get(itemId)!, savedAt: Date.now() });
+    else pendingTicks.current.delete(itemId);
+  }, []);
+
   const refresh = useCallback(async () => {
     if (inFlight.current) {
       again.current = true;
       return;
     }
     inFlight.current = true;
+    const startedAt = Date.now();
     try {
       const [o, d, s] = await Promise.all([
         supabase
@@ -76,7 +88,16 @@ export function useBarOrders(onNewOrders: (orders: BarOrder[]) => void) {
         if (fresh.length) onNewRef.current(fresh);
       }
       known.current = new Set([...openOrders.map((x) => x.id), ...(known.current ?? [])]);
-      setOpen(openOrders);
+      for (const [id, p] of pendingTicks.current) if (p.savedAt !== null && startedAt > p.savedAt) pendingTicks.current.delete(id);
+      const pending = pendingTicks.current;
+      setOpen(
+        pending.size
+          ? openOrders.map((x) => ({
+              ...x,
+              order_items: x.order_items.map((i) => (pending.has(i.id) ? { ...i, ticked: pending.get(i.id)!.value } : i)),
+            }))
+          : openOrders,
+      );
       setDone((d.data as unknown as BarOrder[]).map(sortItems));
       setSettings({
         paused: s.data.ordering_paused,
@@ -142,5 +163,5 @@ export function useBarOrders(onNewOrders: (orders: BarOrder[]) => void) {
   const fresh = Date.now() - lastOkAt < STALE_MS;
   const connection: Connection = !online || (loaded && !fresh) ? "offline" : realtime ? "live" : "checking";
 
-  return { open, done, settings, loaded, connection, refresh, setOpen, setDone };
+  return { open, done, settings, loaded, connection, refresh, setOpen, setDone, markTick, settleTick };
 }

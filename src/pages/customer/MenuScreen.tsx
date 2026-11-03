@@ -21,8 +21,8 @@ const ALSO: Record<string, string[]> = {
   gt: ["gin"],
   jd: ["jack daniel"],
   j20: ["j2o"],
-  ale: ["draught beer"],
-  bitter: ["draught beer"],
+  ale: ["draught beer", "real ale"],
+  bitter: ["draught beer", "real ale"],
   shandy: ["lager", "lemonade"],
   vino: ["wine"],
 };

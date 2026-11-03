@@ -59,6 +59,14 @@ create function pg_temp.offers(p_drink uuid, p_group text) returns void language
   on conflict do nothing
 $$;
 
+-- 0. Stop if this menu is already in place (running it twice would archive
+--    anything added since and add every drink again).
+do $$ begin
+  if exists (select 1 from public.drinks where name = 'Hawkstone Premium Lager' and archived_at is null) then
+    raise exception 'This menu is already on drinksorder.app, so nothing was changed. (It only needs running once.)';
+  end if;
+end $$;
+
 -- 1. Retire the old menu.
 update public.drinks set archived_at = now() where archived_at is null;
 update public.categories set visible = false where visible;

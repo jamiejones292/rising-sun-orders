@@ -48,6 +48,14 @@ create function pg_temp.offers(p_drink uuid, p_group text) returns void language
   on conflict do nothing
 $$;
 
+-- 0. Stop if this menu is already in place (running it twice would archive
+--    anything added since and add every drink again).
+do $$ begin
+  if exists (select 1 from public.drinks where name = 'Hawkstone Premium Lager' and archived_at is null) then
+    raise exception 'This menu is already on drinksorder.app, so nothing was changed. (It only needs running once.)';
+  end if;
+end $$;
+
 -- 1. Retire the old menu.
 update public.drinks set archived_at = now() where archived_at is null;
 update public.categories set visible = false where visible;
@@ -68,6 +76,17 @@ select g.id, 'Orange', 0, 0 from public.modifier_groups g where g.name = 'Flavou
 insert into public.modifier_options (group_id, label, price_pence, sort_order)
 select g.id, 'Blackcurrant', 0, 10 from public.modifier_groups g where g.name = 'Flavour'
    and not exists (select 1 from public.modifier_options o where o.group_id = g.id and o.label = 'Blackcurrant' and o.archived_at is null);
+insert into public.modifier_groups (name, required, sort_order)
+select 'How would you like it?', true, 60 where not exists (select 1 from public.modifier_groups where name = 'How would you like it?');
+insert into public.modifier_options (group_id, label, price_pence, sort_order)
+select g.id, 'Neat', 0, 0 from public.modifier_groups g where g.name = 'How would you like it?'
+   and not exists (select 1 from public.modifier_options o where o.group_id = g.id and o.label = 'Neat' and o.archived_at is null);
+insert into public.modifier_options (group_id, label, price_pence, sort_order)
+select g.id, 'With ice', 0, 10 from public.modifier_groups g where g.name = 'How would you like it?'
+   and not exists (select 1 from public.modifier_options o where o.group_id = g.id and o.label = 'With ice' and o.archived_at is null);
+insert into public.modifier_options (group_id, label, price_pence, sort_order)
+select g.id, 'Splash of water', 0, 20 from public.modifier_groups g where g.name = 'How would you like it?'
+   and not exists (select 1 from public.modifier_options o where o.group_id = g.id and o.label = 'Splash of water' and o.archived_at is null);
 
 -- 3. The new menu.
 do $$

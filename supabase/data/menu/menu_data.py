@@ -245,6 +245,7 @@ cat("Cans, Juices & Mixers", [
 # Extra choice lists the menu needs: (name, customers must choose one, [(choice, extra pence)]).
 GROUPS = [
     ("Flavour", True, [("Orange", 0), ("Blackcurrant", 0)]),
+    ("How would you like it?", True, [("Neat", 0), ("With ice", 0), ("Splash of water", 0)]),
 ]
 
 # Spirits' "Add a mixer" list: (label, extra pence, drink it follows). PROPOSED prices.

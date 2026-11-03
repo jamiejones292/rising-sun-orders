@@ -60,8 +60,6 @@ cat("Bottled Cider", [
     d("Old Mout Strawberry", BOTTLE(490), 4.0, "Sweet, refreshing cider with ripe strawberry flavour. Served over ice.", [S],
       ["Name and ABV: Old Mout's is usually 'Strawberry & Apple' at 4%. Check the bottle."]),
     d("Thatchers Blood Orange", BOTTLE(490), 4.0, "Crisp apple cider with a burst of zesty blood orange.", [S]),
-    d("Thatchers Juicy Fruit", BOTTLE(490), None, "Thatchers' fruity cider with a sweet, juicy flavour.", [S],
-      ["Product not recognised: please check the name, flavour and ABV on the bottle."]),
     d("Thatchers Blackcurrant", BOTTLE(490), 4.0, "Somerset apple cider blended with sweet, tangy blackcurrant.", [S], ["ABV not certain: check the bottle."]),
     d("Thatchers Rosy", BOTTLE(490), 4.0, "Light, refreshing rosé cider made from Somerset apples.", [S], ["ABV not certain: check the bottle."]),
     d("Thatchers Katy", BOTTLE(550), 7.4, "Sparkling single-variety cider made only from Katy apples: fruity and refreshing.", [S]),
@@ -73,8 +71,7 @@ cat("Bottled Cider", [
 cat("Alcohol-Free", [
     d("Old Mout Alcohol Free", BOTTLE(450), 0.0, "All the fruity flavour of Old Mout, without the alcohol.", [S],
       ["Flavour: Old Mout makes several alcohol-free ciders. Which one do you stock?"]),
-    d("Heineken 0.0", [("300ml bottle", 300)], 0.0, "Refreshing alcohol-free lager with a light malty body and fruity notes.", [G],
-      ["Size: Heineken 0.0 bottles are usually 330ml. Is yours 300ml?"]),
+    d("Heineken 0.0", [("330ml bottle", 300)], 0.0, "Refreshing alcohol-free lager with a light malty body and fruity notes.", [G]),
     d("Thatchers Blood Orange Alcohol Free", BOTTLE(450), 0.0, "Crisp apple cider and zesty blood orange, alcohol-free.", [S]),
 ], alcohol=False)
 
@@ -165,8 +162,8 @@ cat("Brandy, Port & Sherry", [
     d("Courvoisier VS Cognac", SPIRIT, 40.0, "Smooth cognac with notes of fresh fruit, spring flowers and oak.", groups=["Add a mixer"]),
     d("Harveys Bristol Cream Sherry", SPIRIT, 17.5, "Rich, smooth cream sherry with dried fruit and nutty notes.", [S],
       ["Sizes: I've used Single/Double as you said for all spirits. Sherry is often sold in a 50ml or 70ml glass instead."]),
-    d("Taylor's Late Bottled Vintage Port 2018", SPIRIT, 20.0, "Rich, full-bodied port with blackberry, cherry and chocolate notes.", [S],
-      ["Sizes: I've used Single/Double as you said for all spirits. Port is often sold in a 50ml glass instead."]),
+    d("Taylor's Late Bottled Vintage Port 2018", [("Glass 50ml", 300)], 20.0, "Rich, full-bodied port with blackberry, cherry and chocolate notes.", [S],
+      ["Price: sold by the glass as you said. I've put a 50ml glass at £3.00 (the single price). Tell me the size and price you want."]),
 ])
 
 cat("House Wine", [
@@ -218,8 +215,7 @@ cat("Red Wine", [
     wine("Showdown Cabernet Sauvignon", 3175, "California, USA", "Vegan",
          "Ripe blackcurrant and wild berry aromas with sweet vanilla oak. Cassis and black cherry lead to a soft, juicy, long-lasting finish."),
     wine("Milhojas Crianza, Rioja", 2775, "Rioja, Spain", "Vegan",
-         "Full-bodied yet smooth, made with 75% Tempranillo and 25% Garnacha. Vanilla spice and baked red fruit: approachable, and lovely on its own.",
-         ["Origin: your list says 'Languedoc, France', but Rioja is in Spain. I've put 'Rioja, Spain'. Please check the label."]),
+         "Full-bodied yet smooth, made with 75% Tempranillo and 25% Garnacha. Vanilla spice and baked red fruit: approachable, and lovely on its own."),
 ], note="Specialist wines · by the bottle")
 
 cat("Prosecco & Champagne", [
@@ -253,8 +249,6 @@ cat("Cans, Juices & Mixers", [
     d("Fever-Tree Low Calorie Tonic", [("200ml bottle", 280)], None, "Fever-Tree's refreshingly light Indian tonic, with fewer calories.",
       no_ice=True, flags=["Name: your list says 'Low Calorie Fever-Tree'. I've called it 'Fever-Tree Low Calorie Tonic'."]),
     d("Britvic Orange", [("200ml bottle", 240)], None, "Orange juice drink. A classic mixer.", no_ice=True),
-    d("Orange Burst", [("Bottle", 250)], None, "Sparkling orange drink.", no_ice=True,
-      flags=["Product not recognised: what is Orange Burst, and what size? Tell me and I'll reword it."]),
     d("Chocolate Milkshake", [("Bottle", 250)], None, "Rich, creamy chocolate milkshake.", [M],
       flags=["Size: bottle, carton or made at the bar? I've put 'Bottle'."]),
     d("Strawberry Milkshake", [("Bottle", 250)], None, "Creamy strawberry milkshake.", [M]),
@@ -265,9 +259,9 @@ cat("Cans, Juices & Mixers", [
 # Spirits' "Add a mixer" list: (label, extra pence, drink it follows). PROPOSED prices.
 MIXERS = [
     ("No mixer", 0, None),
-    ("Lemonade", 120, "Lemonade"),
-    ("Pepsi", 120, "Pepsi"),
-    ("Pepsi Max", 120, "Pepsi Max"),
+    ("Lemonade", 60, "Lemonade"),
+    ("Pepsi", 60, "Pepsi"),
+    ("Pepsi Max", 60, "Pepsi Max"),
     ("Coca-Cola", 180, "Coca-Cola"),
     ("Diet Coke", 180, "Diet Coke"),
     ("Coke Zero", 180, "Coke Zero"),

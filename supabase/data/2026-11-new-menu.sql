@@ -113,23 +113,21 @@ begin
   perform pg_temp.size(dr, 'Bottle', 490, 10);
   dr := pg_temp.drink(c, 'Thatchers Blood Orange', 'Crisp apple cider with a burst of zesty blood orange.', 4.0, true, false, false, array['Sulphites']::text[], 50);
   perform pg_temp.size(dr, 'Bottle', 490, 10);
-  dr := pg_temp.drink(c, 'Thatchers Juicy Fruit', 'Thatchers'' fruity cider with a sweet, juicy flavour.', null, true, false, false, array['Sulphites']::text[], 60);
+  dr := pg_temp.drink(c, 'Thatchers Blackcurrant', 'Somerset apple cider blended with sweet, tangy blackcurrant.', 4.0, true, false, false, array['Sulphites']::text[], 60);
   perform pg_temp.size(dr, 'Bottle', 490, 10);
-  dr := pg_temp.drink(c, 'Thatchers Blackcurrant', 'Somerset apple cider blended with sweet, tangy blackcurrant.', 4.0, true, false, false, array['Sulphites']::text[], 70);
+  dr := pg_temp.drink(c, 'Thatchers Rosy', 'Light, refreshing rosé cider made from Somerset apples.', 4.0, true, false, false, array['Sulphites']::text[], 70);
   perform pg_temp.size(dr, 'Bottle', 490, 10);
-  dr := pg_temp.drink(c, 'Thatchers Rosy', 'Light, refreshing rosé cider made from Somerset apples.', 4.0, true, false, false, array['Sulphites']::text[], 80);
-  perform pg_temp.size(dr, 'Bottle', 490, 10);
-  dr := pg_temp.drink(c, 'Thatchers Katy', 'Sparkling single-variety cider made only from Katy apples: fruity and refreshing.', 7.4, true, false, false, array['Sulphites']::text[], 90);
+  dr := pg_temp.drink(c, 'Thatchers Katy', 'Sparkling single-variety cider made only from Katy apples: fruity and refreshing.', 7.4, true, false, false, array['Sulphites']::text[], 80);
   perform pg_temp.size(dr, 'Bottle', 550, 10);
-  dr := pg_temp.drink(c, 'Thatchers Rascal', 'Medium cider from Somerset with a rich, fruity apple taste.', 4.5, true, false, false, array['Sulphites']::text[], 100);
+  dr := pg_temp.drink(c, 'Thatchers Rascal', 'Medium cider from Somerset with a rich, fruity apple taste.', 4.5, true, false, false, array['Sulphites']::text[], 90);
   perform pg_temp.size(dr, 'Bottle', 530, 10);
-  dr := pg_temp.drink(c, 'Thatchers Rattler', 'Cloudy Cornish cider with a crisp, fruity bite.', 6.0, true, false, false, array['Sulphites']::text[], 110);
+  dr := pg_temp.drink(c, 'Thatchers Rattler', 'Cloudy Cornish cider with a crisp, fruity bite.', 6.0, true, false, false, array['Sulphites']::text[], 100);
   perform pg_temp.size(dr, 'Bottle', 550, 10);
   c := pg_temp.cat('Alcohol-Free', 60);
   dr := pg_temp.drink(c, 'Old Mout Alcohol Free', 'All the fruity flavour of Old Mout, without the alcohol.', 0.0, false, false, false, array['Sulphites']::text[], 10);
   perform pg_temp.size(dr, 'Bottle', 450, 10);
   dr := pg_temp.drink(c, 'Heineken 0.0', 'Refreshing alcohol-free lager with a light malty body and fruity notes.', 0.0, false, false, false, array['Cereals containing gluten']::text[], 20);
-  perform pg_temp.size(dr, '300ml bottle', 300, 10);
+  perform pg_temp.size(dr, '330ml bottle', 300, 10);
   dr := pg_temp.drink(c, 'Thatchers Blood Orange Alcohol Free', 'Crisp apple cider and zesty blood orange, alcohol-free.', 0.0, false, false, false, array['Sulphites']::text[], 30);
   perform pg_temp.size(dr, 'Bottle', 450, 10);
   c := pg_temp.cat('Whisky', 70);
@@ -389,8 +387,7 @@ begin
   perform pg_temp.size(dr, 'Single 25ml', 300, 10);
   perform pg_temp.size(dr, 'Double 50ml', 560, 20);
   dr := pg_temp.drink(c, 'Taylor''s Late Bottled Vintage Port 2018', 'Rich, full-bodied port with blackberry, cherry and chocolate notes.', 20.0, true, false, false, array['Sulphites']::text[], 30);
-  perform pg_temp.size(dr, 'Single 25ml', 300, 10);
-  perform pg_temp.size(dr, 'Double 50ml', 560, 20);
+  perform pg_temp.size(dr, 'Glass 50ml', 300, 10);
   c := pg_temp.cat('House Wine', 130);
   dr := pg_temp.drink(c, 'Pinot Grigio', 'House white. Light and crisp, with fresh pear and citrus.', null, true, false, false, array['Sulphites']::text[], 10);
   perform pg_temp.size(dr, '175ml glass', 520, 10);
@@ -504,15 +501,13 @@ begin
   perform pg_temp.size(dr, '200ml bottle', 280, 10);
   dr := pg_temp.drink(c, 'Britvic Orange', 'Orange juice drink. A classic mixer.', null, false, false, true, '{}'::text[], 110);
   perform pg_temp.size(dr, '200ml bottle', 240, 10);
-  dr := pg_temp.drink(c, 'Orange Burst', 'Sparkling orange drink.', null, false, false, true, '{}'::text[], 120);
+  dr := pg_temp.drink(c, 'Chocolate Milkshake', 'Rich, creamy chocolate milkshake.', null, false, false, false, array['Milk']::text[], 120);
   perform pg_temp.size(dr, 'Bottle', 250, 10);
-  dr := pg_temp.drink(c, 'Chocolate Milkshake', 'Rich, creamy chocolate milkshake.', null, false, false, false, array['Milk']::text[], 130);
+  dr := pg_temp.drink(c, 'Strawberry Milkshake', 'Creamy strawberry milkshake.', null, false, false, false, array['Milk']::text[], 130);
   perform pg_temp.size(dr, 'Bottle', 250, 10);
-  dr := pg_temp.drink(c, 'Strawberry Milkshake', 'Creamy strawberry milkshake.', null, false, false, false, array['Milk']::text[], 140);
+  dr := pg_temp.drink(c, 'Vanilla Milkshake', 'Smooth, creamy vanilla milkshake.', null, false, false, false, array['Milk']::text[], 140);
   perform pg_temp.size(dr, 'Bottle', 250, 10);
-  dr := pg_temp.drink(c, 'Vanilla Milkshake', 'Smooth, creamy vanilla milkshake.', null, false, false, false, array['Milk']::text[], 150);
-  perform pg_temp.size(dr, 'Bottle', 250, 10);
-  dr := pg_temp.drink(c, 'Fruit Shoot Orange & Blackcurrant', 'Kids'' fruit drink, no added sugar.', null, false, false, false, '{}'::text[], 160);
+  dr := pg_temp.drink(c, 'Fruit Shoot Orange & Blackcurrant', 'Kids'' fruit drink, no added sugar.', null, false, false, false, '{}'::text[], 150);
   perform pg_temp.size(dr, 'Bottle', 120, 10);
 end $$;
 
@@ -520,11 +515,11 @@ end $$;
 insert into public.modifier_options (group_id, label, price_pence, sort_order, linked_drink_id)
 select id, 'No mixer', 0, 0, null from public.modifier_groups where name = 'Add a mixer';
 insert into public.modifier_options (group_id, label, price_pence, sort_order, linked_drink_id)
-select id, 'Lemonade', 120, 10, (select id from public.drinks where name = 'Lemonade' and archived_at is null limit 1) from public.modifier_groups where name = 'Add a mixer';
+select id, 'Lemonade', 60, 10, (select id from public.drinks where name = 'Lemonade' and archived_at is null limit 1) from public.modifier_groups where name = 'Add a mixer';
 insert into public.modifier_options (group_id, label, price_pence, sort_order, linked_drink_id)
-select id, 'Pepsi', 120, 20, (select id from public.drinks where name = 'Pepsi' and archived_at is null limit 1) from public.modifier_groups where name = 'Add a mixer';
+select id, 'Pepsi', 60, 20, (select id from public.drinks where name = 'Pepsi' and archived_at is null limit 1) from public.modifier_groups where name = 'Add a mixer';
 insert into public.modifier_options (group_id, label, price_pence, sort_order, linked_drink_id)
-select id, 'Pepsi Max', 120, 30, (select id from public.drinks where name = 'Pepsi Max' and archived_at is null limit 1) from public.modifier_groups where name = 'Add a mixer';
+select id, 'Pepsi Max', 60, 30, (select id from public.drinks where name = 'Pepsi Max' and archived_at is null limit 1) from public.modifier_groups where name = 'Add a mixer';
 insert into public.modifier_options (group_id, label, price_pence, sort_order, linked_drink_id)
 select id, 'Coca-Cola', 180, 40, (select id from public.drinks where name = 'Coca-Cola' and archived_at is null limit 1) from public.modifier_groups where name = 'Add a mixer';
 insert into public.modifier_options (group_id, label, price_pence, sort_order, linked_drink_id)

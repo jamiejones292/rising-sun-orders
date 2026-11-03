@@ -267,3 +267,22 @@ MIXERS = [
     ("Fever-Tree Low Calorie Tonic", 240, "Fever-Tree Low Calorie Tonic"),
     ("Britvic Orange", 200, "Britvic Orange"),
 ]
+
+# Owner's decision (Nov 2026): no ABVs on the menu. Clear them, and drop or
+# reword the checks that were only about ABV.
+_REWORD = {
+    "Name and ABV: Old Mout's mango cider is usually 'Mango & Passion Fruit' at 4%. Check the bottle.":
+        "Name: Old Mout's mango cider is usually 'Mango & Passion Fruit'. Check the bottle.",
+    "Name and ABV: Old Mout's is usually 'Strawberry & Apple' at 4%. Check the bottle.":
+        "Name: Old Mout's is usually 'Strawberry & Apple'. Check the bottle.",
+    "Winter Jack is a 15% liqueur. Should it go under Liqueurs instead?":
+        "Winter Jack is a liqueur. Should it go under Liqueurs instead?",
+    "Product not recognised: please check the name and ABV on the bottle.":
+        "Product not recognised: please check the name on the bottle.",
+    "Product and ABV: please check the exact name and ABV on the bottle.":
+        "Product: please check the exact name on the bottle.",
+}
+for _c in MENU:
+    for _x in _c["drinks"]:
+        _x["abv"] = None
+        _x["flags"] = [_REWORD.get(f, f) for f in _x["flags"] if _REWORD.get(f) or "ABV" not in f]

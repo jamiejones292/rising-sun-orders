@@ -22,8 +22,6 @@ for c in MENU:
         meta = []
         if x["abv"] is not None:
             meta.append(f"{x['abv']:g}% ABV")
-        elif alcohol:
-            meta.append('<span class="miss">ABV to add</span>')
         if x["welsh"]:
             meta.append('<span class="tag">Welsh</span>')
         sizes = "".join(f'<li><span>{e(l)}</span><b>{money(p)}</b></li>' for l, p in x["sizes"])

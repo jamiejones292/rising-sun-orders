@@ -66,17 +66,32 @@ export function useCustomerMenu() {
   const [error, setError] = useState(false);
 
   const load = useCallback(async () => {
-    const [c, d, t, h, s] = await Promise.all([
-      supabase.from("categories").select("id, name, sort_order, visible").eq("visible", true).order("sort_order"),
-      supabase.from("drinks").select(DRINKS).is("archived_at", null).order("sort_order"),
-      supabase.from("venue_tables").select("id, label, sort_order").eq("active", true).order("sort_order"),
-      supabase.from("opening_hours").select("*").order("weekday"),
-      supabase
-        .from("venue_settings")
-        .select("ordering_paused, pause_message, age_declaration_text, minimum_order_pence, customer_menu_live, test_orders_until")
-        .eq("id", 1)
-        .single(),
-    ]);
+    // A weak pub signal can leave a request hanging: give up after 15 seconds
+    // so "Try again" works (AbortSignal.timeout isn't on older phones).
+    const ctl = new AbortController();
+    const timer = window.setTimeout(() => ctl.abort(), 15_000);
+    const sig = ctl.signal;
+    let results;
+    try {
+      results = await Promise.all([
+        supabase.from("categories").select("id, name, sort_order, visible").eq("visible", true).order("sort_order").abortSignal(sig),
+        supabase.from("drinks").select(DRINKS).is("archived_at", null).order("sort_order").abortSignal(sig),
+        supabase.from("venue_tables").select("id, label, sort_order").eq("active", true).order("sort_order").abortSignal(sig),
+        supabase.from("opening_hours").select("*").order("weekday").abortSignal(sig),
+        supabase
+          .from("venue_settings")
+          .select("ordering_paused, pause_message, age_declaration_text, minimum_order_pence, customer_menu_live, test_orders_until")
+          .eq("id", 1)
+          .abortSignal(sig)
+          .single(),
+      ]);
+    } catch {
+      setError(true);
+      return;
+    } finally {
+      window.clearTimeout(timer);
+    }
+    const [c, d, t, h, s] = results;
     if (c.error || d.error || t.error || h.error || s.error) {
       setError(true);
       return;

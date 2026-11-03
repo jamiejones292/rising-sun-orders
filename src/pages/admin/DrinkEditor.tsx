@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "../../lib/supabase";
 import type { MenuData } from "../../lib/adminData";
@@ -88,10 +88,19 @@ export default function DrinkEditor({
   const [vat, setVat] = useState(String(drink?.vat_rate ?? 20));
   const [available, setAvailable] = useState(drink?.available ?? true);
   const [allergens, setAllergens] = useState<string[]>(drink?.allergens ?? []);
+  // A new drink starts with the option lists most drinks in its category have
+  // (e.g. "How would you like it?" for whiskies), plus the mixer list for spirits.
+  const autoGroups = (catId: string) => {
+    const same = data.drinks.filter((d) => d.category_id === catId && !d.archived_at);
+    const common = data.groups
+      .filter((g) => same.length > 0 && same.filter((d) => d.drink_modifier_groups.some((x) => x.group_id === g.id)).length * 2 > same.length)
+      .map((g) => g.id);
+    const mixer = mixerFor(catId);
+    return mixer && !common.includes(mixer) ? [...common, mixer] : common;
+  };
   const [groupIds, setGroupIds] = useState<string[]>(() => {
     if (drink) return drink.drink_modifier_groups.map((g) => g.group_id);
-    const mixer = mixerFor(categoryId);
-    return mixer ? [mixer] : [];
+    return autoGroups(categoryId);
   });
   const [sizes, setSizes] = useState<SizeRow[]>(
     drink
@@ -119,9 +128,53 @@ export default function DrinkEditor({
     sizes.map((x) => [x.label, x.price, x.available]),
   ]);
   const initial = useRef(snapshot);
-  const requestClose = () => {
-    if (snapshot === initial.current || window.confirm("Close without saving your changes?")) onClose();
+  const dirty = snapshot !== initial.current;
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  // Leaving: also take away the history entry added for the phone's Back button.
+  const leaving = useRef(false);
+  const leave = () => {
+    leaving.current = true;
+    if ((window.history.state as { rsDrawer?: boolean } | null)?.rsDrawer) window.history.back();
   };
+  const requestClose = () => {
+    if (!dirty) {
+      leave();
+      return onClose();
+    }
+    setConfirmDiscard(true);
+  };
+  const discard = () => {
+    leave();
+    onClose();
+  };
+  // The phone's Back button closes the form (asking first if there are changes),
+  // instead of leaving the page; closing or reloading the tab asks too.
+  const dirtyRef = useRef(dirty);
+  dirtyRef.current = dirty;
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  useEffect(() => {
+    const mark = () => window.history.pushState({ ...(window.history.state as object | null), rsDrawer: true }, "");
+    if (!(window.history.state as { rsDrawer?: boolean } | null)?.rsDrawer) mark();
+    const onPop = () => {
+      if (leaving.current) return;
+      if (dirtyRef.current) {
+        mark();
+        setConfirmDiscard(true);
+      } else onCloseRef.current();
+    };
+    const onUnload = (e: BeforeUnloadEvent) => {
+      if (dirtyRef.current) e.preventDefault();
+    };
+    window.addEventListener("popstate", onPop);
+    window.addEventListener("beforeunload", onUnload);
+    return () => {
+      window.removeEventListener("popstate", onPop);
+      window.removeEventListener("beforeunload", onUnload);
+    };
+  }, []);
+  // Saving into a hidden category asks once more (the drink wouldn't be seen).
+  const [hiddenWarned, setHiddenWarned] = useState<string | null>(null);
 
   const toggleIn = (list: string[], value: string) =>
     list.includes(value) ? list.filter((x) => x !== value) : [...list, value];
@@ -133,6 +186,11 @@ export default function DrinkEditor({
     if (!name.trim()) return setError("Give the drink a name so customers can find it.");
     if (!categoryId) return setError("Choose a category.");
     if (mixerOnly) return saveMixerOnly();
+    const cat = data.categories.find((c) => c.id === categoryId);
+    if (cat && !cat.visible && hiddenWarned !== categoryId) {
+      setHiddenWarned(categoryId);
+      return setError(`"${cat.name}" is a hidden category, so customers won't see this drink. Choose another category, or press Save again to save it anyway.`);
+    }
     if (sizes.length === 0) return setError("Add at least one size with a price.");
     for (const s of sizes) {
       if (!s.label.trim() || parsePrice(s.price) === null) {
@@ -184,6 +242,7 @@ export default function DrinkEditor({
     const mixerErr = await saveMixer(id, mixerPence ?? 0);
     setBusy(false);
     if (mixerErr) return setError(`The drink was saved, but the mixer wasn't: ${friendlyError(mixerErr)} Press Save to try again.`);
+    leave();
     await onSaved(name.trim(), false);
   }
 
@@ -236,6 +295,7 @@ export default function DrinkEditor({
     const mixerErr = await saveMixer(id, pence, true);
     setBusy(false);
     if (mixerErr) return setError(`The mixer was saved, but isn't in the mixer list yet: ${friendlyError(mixerErr)}`);
+    leave();
     await onSaved(name.trim(), false);
   }
 
@@ -278,6 +338,7 @@ export default function DrinkEditor({
     const { error: err } = await client.from("drinks").update({ archived_at: new Date().toISOString() }).eq("id", drink.id);
     setBusy(false);
     if (err) return setError(friendlyError(err));
+    leave();
     await onSaved(drink.name, true);
   }
 
@@ -288,6 +349,17 @@ export default function DrinkEditor({
       eyebrow={drink ? "Edit drink" : "New drink"}
       title={drink ? drink.name : "Add a new drink"}
       footer={
+        confirmDiscard ? (
+          <div className="flex w-full flex-wrap items-center gap-2.5">
+            <b className="text-alert">Discard your changes?</b>
+            <Button variant="danger" onClick={discard}>
+              Discard changes
+            </Button>
+            <Button variant="ghost" onClick={() => setConfirmDiscard(false)}>
+              Keep editing
+            </Button>
+          </div>
+        ) : (
         <>
           <Button onClick={() => void save()} disabled={busy}>
             {busy ? "Saving…" : drink ? "Save changes" : "Save & publish"}
@@ -302,6 +374,7 @@ export default function DrinkEditor({
             </Button>
           )}
         </>
+        )
       }
     >
       <Field label="Drink name">
@@ -324,15 +397,21 @@ export default function DrinkEditor({
               setCategoryId(e.target.value);
               if (e.target.value === NEW_MIXERS || e.target.value === mixersCat?.id) setAsMixer(true);
               const mixer = mixerFor(e.target.value);
-              if (mixer && !groupIds.includes(mixer)) setGroupIds([...groupIds, mixer]);
-              // A new drink starts in the first category; moving it out of Spirits
-              // takes away the mixer list that was ticked for it automatically.
-              const auto = mixerFor(categoryId);
-              if (!drink && !mixer && auto) setGroupIds(groupIds.filter((id) => id !== auto));
+              if (drink) {
+                if (mixer && !groupIds.includes(mixer)) setGroupIds([...groupIds, mixer]);
+              } else {
+                // A new drink: swap the lists ticked automatically for the old
+                // category for the new category's, keeping any ticked by hand.
+                const before = autoGroups(categoryId);
+                const after = autoGroups(e.target.value);
+                setGroupIds([...groupIds.filter((id) => !before.includes(id) && !after.includes(id)), ...after]);
+              }
             }}
           >
             {data.categories
               .filter((c) => c.id !== mixersCat?.id)
+              // Hidden categories last, so a new drink isn't put in one by mistake.
+              .sort((a, b) => Number(!a.visible) - Number(!b.visible))
               .map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}

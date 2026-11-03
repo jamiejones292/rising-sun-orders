@@ -169,7 +169,7 @@ export default function TrackOrder() {
         ))}
       </details>
       {order.payment_status === "paid" && <ReceiptBox token={token} state={order} onChanged={() => void load()} />}
-      <Link to="/" className="flex min-h-13.5 items-center justify-center rounded bg-forest font-semibold text-ivory">
+      <Link to="/" state={{ screen: "menu" }} className="flex min-h-13.5 items-center justify-center rounded bg-forest font-semibold text-ivory">
         Order more drinks
       </Link>
       <p className="text-center text-sm text-muted">

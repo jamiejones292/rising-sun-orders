@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import { formatPence } from "../../lib/money";
 import { orderingWindow } from "../../lib/hours";
@@ -22,7 +22,11 @@ type Screen = "welcome" | "menu" | "basket" | "table" | "confirm";
 export default function CustomerApp({ preview, previewPhone }: { preview: boolean; previewPhone: boolean }) {
   const { menu, error, reload } = useCustomerMenu();
   const basket = useBasket();
-  const [screen, setScreen] = useState<Screen>("welcome");
+  // The screen lives in the browser history, so the phone's Back button steps
+  // back through menu → basket → table → confirm, and closes a drink pop-up.
+  const location = useLocation();
+  const navState = (location.state ?? null) as { screen?: Screen; sheet?: boolean } | null;
+  const screen: Screen = navState?.screen ?? "welcome";
   const [category, setCategory] = useState("all");
   const [query, setQuery] = useState("");
   const [sheet, setSheet] = useState<{ drink: MenuDrink; index: number | null } | null>(null);
@@ -31,6 +35,27 @@ export default function CustomerApp({ preview, previewPhone }: { preview: boolea
   const [againNote, setAgainNote] = useState<string | null>(null);
   const [details, setDetails] = useState<CheckoutDetails>({ table: basket.table ?? "", ageConfirmed: false, email: "" });
   const navigate = useNavigate();
+
+  // Screens visited on this page, oldest first, to tell "back" from "forward".
+  const trail = useRef<Screen[]>([]);
+  useEffect(() => {
+    const t = trail.current;
+    if (t[t.length - 2] === screen) t.pop();
+    else if (t[t.length - 1] !== screen) t.push(screen);
+    window.scrollTo(0, 0);
+  }, [screen]);
+  useEffect(() => {
+    // After a page refresh, checkout steps start again from the basket (the
+    // age tick isn't kept), and a pop-up that was open stays closed.
+    if (navState?.screen === "table" || navState?.screen === "confirm" || navState?.sheet) {
+      navigate(".", { replace: true, state: { screen: navState.screen === "table" || navState.screen === "confirm" ? "basket" : navState.screen } });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // Back button with a pop-up open: close it.
+  useEffect(() => {
+    if (!navState?.sheet) setSheet(null);
+  }, [navState?.sheet]);
 
   useEffect(() => {
     document.title = "The Rising Sun Inn · Drinks to your table";
@@ -43,15 +68,26 @@ export default function CustomerApp({ preview, previewPhone }: { preview: boolea
   }, [toast]);
 
   const go = (s: Screen) => {
-    setScreen(s);
     if (s !== "basket") setAgainNote(null);
-    window.scrollTo(0, 0);
     if (s === "basket" || s === "table") void reload(); // re-check prices and stock
+    if (s === screen) return;
+    const t = trail.current;
+    if (t[t.length - 2] === s) navigate(-1);
+    else navigate(".", { state: { screen: s } });
+  };
+  const openSheet = (drink: MenuDrink, index: number | null) => {
+    setSheet({ drink, index });
+    navigate(".", { state: { screen, sheet: true } });
+  };
+  const closeSheet = () => {
+    if (navState?.sheet) navigate(-1);
+    else setSheet(null);
   };
 
   const priced = useMemo(() => (menu ? basket.lines.map((l) => priceLine({ drinks: menu.drinks }, l)) : []), [menu, basket.lines]);
   const total = priced.reduce((s, p) => s + (p.ok ? p.totalPence : 0), 0);
   const count = basket.lines.reduce((s, l) => s + l.quantity, 0);
+  const pricedCount = priced.reduce((s, p, i) => s + (p.ok ? basket.lines[i]!.quantity : 0), 0);
   const problems = priced.some((p) => !p.ok);
   const needsAge = priced.some((p) => p.ok && p.containsAlcohol);
 
@@ -66,7 +102,7 @@ export default function CustomerApp({ preview, previewPhone }: { preview: boolea
       </main>
     );
   }
-  if (!menu) return <main className="gutter py-20 text-center text-muted">Loading the drinks menu…</main>;
+  if (!menu) return <MenuLoading onRetry={() => void reload()} />;
 
   const window_ = orderingWindow(menu.hours);
   const paused = menu.settings.ordering_paused;
@@ -187,6 +223,14 @@ export default function CustomerApp({ preview, previewPhone }: { preview: boolea
                   ? `Table ordering opens ${window_.today ? "today" : "next"} at ${window_.opensAt}`
                   : "Table ordering is closed"}
           </p>
+          {count > 0 && (
+            <button onClick={() => go("basket")} className="flex min-h-13.5 w-full items-center justify-between gap-3 rounded border border-gold bg-gold px-4.5 font-semibold text-white">
+              <span>Carry on with your basket</span>
+              <span className="tabular-nums">
+                {count} · {formatPence(total)}
+              </span>
+            </button>
+          )}
           <button onClick={() => go("menu")} className="min-h-13.5 w-full rounded border border-forest bg-forest font-semibold text-ivory">
             View the drinks menu
           </button>
@@ -204,9 +248,9 @@ export default function CustomerApp({ preview, previewPhone }: { preview: boolea
               The Rising Sun Inn
               <small className="mt-1 block font-caps text-[0.6rem] tracking-[0.3em] text-gold-soft">ABERSYCHAN</small>
             </button>
-            <span className="rounded-full border border-gold-soft/50 px-3 py-1.5 text-xs whitespace-nowrap text-gold-soft">
-              {basket.table && menu.tables.some((t) => t.label === basket.table) ? `Table ${basket.table}` : "Table chosen at checkout"}
-            </span>
+            {basket.table && menu.tables.some((t) => t.label === basket.table) && (
+              <span className="shrink-0 rounded-full border border-gold-soft/50 px-3 py-1.5 text-xs text-gold-soft">Table {basket.table}</span>
+            )}
           </div>
           {screen === "menu" && (
             <MenuToolbar menu={menu} category={category} onCategory={setCategory} query={query} onQuery={setQuery} />
@@ -228,7 +272,7 @@ export default function CustomerApp({ preview, previewPhone }: { preview: boolea
               </div>
             )
           }
-          onPick={(d) => (d.available ? setSheet({ drink: d, index: null }) : setToast(`${d.name} is sold out tonight. Sorry!`))}
+          onPick={(d) => (d.available ? openSheet(d, null) : setToast(`${d.name} is sold out tonight. Sorry!`))}
         />
       )}
       {screen === "basket" && (
@@ -238,7 +282,7 @@ export default function CustomerApp({ preview, previewPhone }: { preview: boolea
           onBack={() => go("menu")}
           onEdit={(i) => {
             const d = menu.drinks.find((x) => x.id === basket.lines[i]!.drinkId);
-            if (d) setSheet({ drink: d, index: i });
+            if (d) openSheet(d, i);
           }}
           onQuantity={basket.setQuantity}
           onRemove={basket.remove}
@@ -268,8 +312,13 @@ export default function CustomerApp({ preview, previewPhone }: { preview: boolea
       {screen === "confirm" && (
         <ConfirmScreen
           table={details.table}
-          drinks={count}
+          drinks={pricedCount}
+          lines={priced.flatMap((p, i) =>
+            p.ok ? [`${basket.lines[i]!.quantity} × ${p.drinkName} (${p.variantLabel})${extrasOf(p.extras)}${p.noIce ? ", no ice" : ""}`] : [],
+          )}
           totalPence={total}
+          blocked={count > 0 && !canCheckout ? (checkoutBlock ?? "Something in your basket needs changing first.") : null}
+          onBasket={() => go("basket")}
           onChangeTable={() => go("table")}
           onPlaceTestOrder={testMode ? placeTestOrder : null}
           previewPhone={previewPhone}
@@ -302,7 +351,7 @@ export default function CustomerApp({ preview, previewPhone }: { preview: boolea
           menu={menu}
           drink={menu.drinks.find((d) => d.id === sheet.drink.id) ?? sheet.drink}
           editing={sheet.index !== null ? basket.lines[sheet.index]! : null}
-          onClose={() => setSheet(null)}
+          onClose={closeSheet}
           onSave={(line) => {
             if (sheet.index !== null) {
               basket.replace(sheet.index, line);
@@ -311,11 +360,11 @@ export default function CustomerApp({ preview, previewPhone }: { preview: boolea
               basket.add(line);
               setToast(`Added ${line.quantity} × ${sheet.drink.name}`);
             }
-            setSheet(null);
+            closeSheet();
           }}
         />
       )}
-      {toast && (
+      {toast && !sheet && (
         <div role="status" className="fixed bottom-[calc(6rem+env(safe-area-inset-bottom,0px))] left-1/2 z-40 max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded bg-forest px-4 py-2.5 text-sm text-ivory">
           {toast}
         </div>
@@ -323,6 +372,12 @@ export default function CustomerApp({ preview, previewPhone }: { preview: boolea
     </div>
   );
 }
+
+// "+ Coca-Cola" for the summary; "No mixer" goes without saying.
+const extrasOf = (extras: { optionLabel: string }[]) => {
+  const shown = extras.map((x) => x.optionLabel).filter((l) => !/^no mixer$/i.test(l));
+  return shown.length ? ` + ${shown.join(", ")}` : "";
+};
 
 const TEST_ORDER_ERRORS: Record<string, string> = {
   test_mode_off: "Test orders have been switched off. Turn them on again in Venue settings.",
@@ -340,6 +395,28 @@ const TEST_ORDER_ERRORS: Record<string, string> = {
   too_many_lines: "That's a lot of different drinks for one order. Please split it into two orders.",
   too_many_test_orders: "Lots of test orders just now. Wait a minute and try again.",
 };
+
+// "Loading…", then after a few seconds a hint about the signal, with a retry.
+function MenuLoading({ onRetry }: { onRetry: () => void }) {
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    const id = window.setTimeout(() => setSlow(true), 6000);
+    return () => window.clearTimeout(id);
+  }, []);
+  return (
+    <main className="gutter mx-auto flex min-h-[60dvh] max-w-[440px] flex-col items-center justify-center gap-4 text-center text-muted">
+      <p className="m-0">Loading the drinks menu…</p>
+      {slow && (
+        <>
+          <p className="m-0 text-sm">This is taking a while. The signal may be weak here: try the pub Wi-Fi, or move nearer a window.</p>
+          <button onClick={onRetry} className="min-h-12 rounded border border-forest px-5 font-semibold text-forest">
+            Try again
+          </button>
+        </>
+      )}
+    </main>
+  );
+}
 
 function Banner({ title, children }: { title: string; children: ReactNode }) {
   return (

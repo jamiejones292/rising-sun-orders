@@ -11,6 +11,13 @@ import { PageHeader } from "./AdminApp";
 
 type Filter = "active" | "off" | "archived";
 
+// Ignore capitals and accents when searching ("rose" finds Rosé).
+const plain = (s: string) =>
+  s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
 export default function Drinks() {
   const { data, error, reload, setData } = useMenuData();
   const toast = useToast();
@@ -29,15 +36,23 @@ export default function Drinks() {
     }
   }, [params, setParams]);
 
+  // Drinks that are also a mixer choice for spirits (a linked option still offered).
+  const mixerIds = useMemo(
+    () => new Set((data?.groups ?? []).flatMap((g) => g.modifier_options.filter((o) => !o.archived_at && o.linked_drink_id).map((o) => o.linked_drink_id!))),
+    [data],
+  );
   const groups = useMemo(() => {
     if (!data) return [];
-    const term = q.trim().toLowerCase();
+    const term = plain(q.trim());
+    const catName = (id: string) => data.categories.find((c) => c.id === id)?.name ?? "";
+    // Matches the start of a word, so "rose" finds Rosé but not Prosecco.
+    const wordStart = new RegExp(`(^|[^a-z0-9])${term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`);
     const list = data.drinks.filter(
       (d) =>
         (filter === "archived" ? !!d.archived_at : !d.archived_at) &&
         (filter !== "off" || !d.available || d.drink_variants.some((v) => !v.archived_at && !v.available)) &&
         (cat === "all" || d.category_id === cat) &&
-        (!term || d.name.toLowerCase().includes(term)),
+        (!term || wordStart.test(plain(`${d.name} ${catName(d.category_id)}`))),
     );
     return data.categories.map((c) => ({ cat: c, drinks: list.filter((d) => d.category_id === c.id) })).filter((g) => g.drinks.length);
   }, [data, q, cat, filter]);
@@ -54,8 +69,9 @@ export default function Drinks() {
       patchDrink(d.id, (x) => ({ ...x, available: !available }));
       return toast(friendlyError(error), { error: true });
     }
+    const mixer = mixerIds.has(d.id) ? " (and as a mixer)" : "";
     if (!quiet)
-      toast(available ? `${d.name} is back on the menu` : `${d.name} marked out of stock. Customers can't order it.`, {
+      toast(available ? `${d.name} is back on the menu${mixer}` : `${d.name} marked out of stock${mixer}. Customers can't order it.`, {
         undo: () => void setDrinkAvailable(d, !available, true),
       });
   }
@@ -91,7 +107,22 @@ export default function Drinks() {
     const { error } = await supabase.from("drinks").update({ archived_at: null }).eq("id", d.id);
     if (error) return toast(friendlyError(error), { error: true });
     await reload();
-    toast(`${d.name} restored to the menu`);
+    const c = data?.categories.find((x) => x.id === d.category_id);
+    toast(
+      c && !c.visible
+        ? `${d.name} restored, but its category "${c.name}" is hidden, so customers won't see it. Edit the drink to move it, or show the category.`
+        : `${d.name} restored to the menu`,
+    );
+  }
+
+  // "All off" / "All on" for a whole category (asks once more first).
+  const [confirmAll, setConfirmAll] = useState<string | null>(null);
+  async function setCategoryAvailable(catId: string, name: string, available: boolean) {
+    setConfirmAll(null);
+    const { data: n, error } = await supabase.rpc("admin_set_category_available", { p_category_id: catId, p_available: available });
+    if (error) return toast(friendlyError(error), { error: true });
+    await reload();
+    toast(`${name}: ${n ?? 0} drink${n === 1 ? "" : "s"} switched ${available ? "on" : "off"}`);
   }
 
   const setFilter = (f: Filter) => {
@@ -110,11 +141,12 @@ export default function Drinks() {
           </Button>
         }
       />
-      <div className="flex flex-wrap items-center gap-2.5">
+      {/* Stays at the top while scrolling a long menu. */}
+      <div className="sticky top-0 z-5 -mx-1 flex flex-wrap items-center gap-2.5 bg-ivory px-1 py-2">
         <input
           id="drink-search"
           type="search"
-          placeholder="Search drinks"
+          placeholder="Search drinks or categories"
           aria-label="Search drinks"
           value={q}
           onChange={(e) => setQ(e.target.value)}
@@ -166,11 +198,26 @@ export default function Drinks() {
       <div className="flex flex-col gap-6.5">
         {groups.map(({ cat: c, drinks }) => (
           <section key={c.id} className="flex flex-col">
-            <h2 className="flex items-baseline justify-between gap-2.5 border-b border-gold pb-1.5 text-2xl font-semibold">
+            <h2 className="flex flex-wrap items-baseline justify-between gap-2.5 border-b border-gold pb-1.5 text-2xl font-semibold">
               {c.name}
-              <span className="font-sans text-sm font-medium text-muted">
+              <span className="flex flex-wrap items-center gap-2 font-sans text-sm font-medium text-muted">
                 {drinks.length} drink{drinks.length === 1 ? "" : "s"}
                 {!c.visible && " · category hidden"}
+                {filter !== "archived" &&
+                  ([false, true] as const).map((on) => {
+                    const key = `${c.id}:${on}`;
+                    return (
+                      <Button
+                        key={key}
+                        variant={confirmAll === key ? "danger" : "ghost"}
+                        small
+                        onClick={() => (confirmAll === key ? void setCategoryAvailable(c.id, c.name, on) : setConfirmAll(key))}
+                      >
+                        {confirmAll === key ? `Switch every ${c.name} drink ${on ? "on" : "off"}?` : on ? "All on" : "All off"}
+                      </Button>
+                    );
+                  })}
+                {filter !== "archived" && <CategoryPrice catId={c.id} name={c.name} drinks={drinks} onDone={reload} />}
               </span>
             </h2>
             {drinks.map((d) => (
@@ -186,6 +233,7 @@ export default function Drinks() {
                     {d.abv != null && <span>{d.abv}% ABV</span>}
                     {d.is_welsh && <Pill tone="gold">Welsh</Pill>}
                     {!d.available && !d.archived_at && <Pill tone="bad">Out of stock</Pill>}
+                    {mixerIds.has(d.id) && <Pill tone="gold">Mixer for spirits</Pill>}
                     {d.drink_modifier_groups.map((g) => (
                       <span key={g.group_id}>+ {data?.groups.find((x) => x.id === g.group_id)?.name}</span>
                     ))}
@@ -239,9 +287,6 @@ export default function Drinks() {
                       <Button variant="ghost" small aria-label={`Edit ${d.name}`} onClick={() => setEditing(d)}>
                         Edit
                       </Button>
-                      <Button variant="danger-ghost" small aria-label={`Delete ${d.name}`} onClick={() => setConfirmDelete(d.id)}>
-                        Delete
-                      </Button>
                     </>
                   )}
                 </div>
@@ -255,7 +300,7 @@ export default function Drinks() {
         <DrinkEditor
           drink={editing === "new" ? null : editing}
           data={data}
-          defaultCategory={cat !== "all" ? cat : data.categories[0]?.id}
+          defaultCategory={cat !== "all" ? cat : (data.categories.find((c) => c.visible) ?? data.categories[0])?.id}
           onClose={() => setEditing(null)}
           onSaved={async (name, archived) => {
             setEditing(null);
@@ -265,5 +310,61 @@ export default function Drinks() {
         />
       )}
     </>
+  );
+}
+
+// Set one size's price for every drink in a category at once, e.g. every
+// "Single 25ml" gin to £3.20.
+function CategoryPrice({ catId, name, drinks, onDone }: { catId: string; name: string; drinks: Drink[]; onDone: () => Promise<void> }) {
+  const toast = useToast();
+  const [open, setOpen] = useState(false);
+  const sizes = [...new Set(drinks.flatMap((d) => d.drink_variants.filter((v) => !v.archived_at).map((v) => v.label)))];
+  const [size, setSize] = useState(sizes[0] ?? "");
+  const [price, setPrice] = useState("");
+  const [busy, setBusy] = useState(false);
+  if (!sizes.length) return null;
+  if (!open)
+    return (
+      <Button variant="ghost" small onClick={() => setOpen(true)}>
+        Change a price
+      </Button>
+    );
+  const pence = /^\d+(\.\d{1,2})?$/.test(price.trim().replace(/^£/, "")) ? Math.round(parseFloat(price.trim().replace(/^£/, "")) * 100) : null;
+  const count = drinks.filter((d) => d.drink_variants.some((v) => !v.archived_at && v.label === size)).length;
+  async function save() {
+    if (!pence || pence <= 0) return toast("Write the price like 3.20", { error: true });
+    setBusy(true);
+    const { data: n, error } = await supabase.rpc("admin_set_category_size_price", { p_category_id: catId, p_label: size, p_price_pence: pence });
+    setBusy(false);
+    if (error) return toast(friendlyError(error), { error: true });
+    setOpen(false);
+    setPrice("");
+    await onDone();
+    toast(`${name}: ${size} is now ${formatPence(pence)} (${n ?? 0} changed)`);
+  }
+  return (
+    <span className="flex basis-full flex-wrap items-center gap-2 rounded border border-line bg-paper p-2 text-ink">
+      Set every
+      <select aria-label="Size" value={size} onChange={(e) => setSize(e.target.value)} className={`${inputClass} !h-10 !w-auto`}>
+        {sizes.map((l) => (
+          <option key={l}>{l}</option>
+        ))}
+      </select>
+      in {name} to £
+      <input
+        aria-label="New price"
+        inputMode="decimal"
+        placeholder="3.20"
+        value={price}
+        onChange={(e) => setPrice(e.target.value)}
+        className={`${inputClass} !h-10 !w-24`}
+      />
+      <Button small disabled={busy || !pence} onClick={() => void save()}>
+        {busy ? "Saving…" : `Save for ${count} drink${count === 1 ? "" : "s"}`}
+      </Button>
+      <Button variant="ghost" small onClick={() => setOpen(false)}>
+        Cancel
+      </Button>
+    </span>
   );
 }

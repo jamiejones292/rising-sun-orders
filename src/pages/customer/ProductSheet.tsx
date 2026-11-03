@@ -3,6 +3,9 @@ import { formatPence } from "../../lib/money";
 import { MAX_QUANTITY, priceLine, type BasketLine } from "../../lib/pricing";
 import type { CustomerMenu, MenuDrink } from "./useCustomerMenu";
 
+// A gin's mixer list: "No mixer" first, then the tonics, then the rest.
+const ginRank = (label: string) => (/^no\b/i.test(label) ? 0 : /tonic/i.test(label) ? 1 : 2);
+
 // Bottom sheet for choosing size, extras and quantity.
 export default function ProductSheet({
   menu,
@@ -52,6 +55,17 @@ export default function ProductSheet({
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
+  // Lists you must choose from come first (e.g. how a whisky is served), and a
+  // gin's mixer list starts with the tonics.
+  const isGin = /\bgin\b/i.test(category ?? "");
+  const groups = [...drink.groups]
+    .sort((a, b) => Number(b.required) - Number(a.required))
+    .map((g) =>
+      isGin && /mixer/i.test(g.name)
+        ? { ...g, options: [...g.options].sort((a, b) => ginRank(a.label) - ginRank(b.label)) }
+        : g,
+    );
+
   const line: BasketLine = { drinkId: drink.id, variantId, options, noIce, quantity: qty };
   const priced = priceLine({ drinks: menu.drinks }, line);
 
@@ -79,6 +93,11 @@ export default function ProductSheet({
               {drink.name}
             </h3>
           </div>
+          {!drink.available && (
+            <p role="alert" className="rounded border border-alert bg-[#fbede7] p-3 font-semibold text-alert">
+              Sorry, {drink.name} has just sold out. Please choose something else.
+            </p>
+          )}
           {(drink.description || drink.abv != null) && (
             <p className="text-muted">
               {drink.description}
@@ -106,7 +125,7 @@ export default function ProductSheet({
               />
             ))}
           </fieldset>
-          {drink.groups.map((g) => (
+          {groups.map((g) => (
             <fieldset key={g.id} className="flex flex-col gap-2">
               <legend className="mb-2 text-xs font-bold tracking-[0.08em] text-forest uppercase">
                 {g.name} <span className="font-medium tracking-normal text-muted normal-case">· {g.required ? "choose one" : "optional"}</span>
@@ -134,13 +153,19 @@ export default function ProductSheet({
             </fieldset>
           )}
         </div>
+        {qty >= MAX_QUANTITY && <p className="gutter m-0 pt-2 text-center text-sm text-muted">Up to {MAX_QUANTITY} of one drink per order.</p>}
         <div className="gutter flex items-center gap-3 border-t border-line pt-3 pb-[calc(0.9rem+env(safe-area-inset-bottom,0px))]">
           <div className="flex h-13.5 shrink-0 items-center rounded border border-forest">
             <button aria-label="One fewer" onClick={() => setQty(Math.max(1, qty - 1))} className="h-full w-11 text-xl text-forest">
               −
             </button>
             <output className="min-w-6 text-center font-bold tabular-nums">{qty}</output>
-            <button aria-label="One more" onClick={() => setQty(Math.min(MAX_QUANTITY, qty + 1))} className="h-full w-11 text-xl text-forest">
+            <button
+              aria-label="One more"
+              disabled={qty >= MAX_QUANTITY}
+              onClick={() => setQty(Math.min(MAX_QUANTITY, qty + 1))}
+              className="h-full w-11 text-xl text-forest disabled:opacity-35"
+            >
               +
             </button>
           </div>

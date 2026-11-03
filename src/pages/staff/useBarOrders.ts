@@ -3,7 +3,7 @@ import { supabase } from "../../lib/supabase";
 import type { BarOrder } from "../../lib/types";
 
 const ORDER_SELECT =
-  "id, order_number, table_label, total_pence, payment_method_label, paid_at, fulfilment_status, delivered_at, problem_reason, refunded_pence, version, order_items(*, order_item_options(option_label, group_name), drinks(contains_alcohol))";
+  "id, order_number, table_label, total_pence, payment_method_label, payment_provider, paid_at, fulfilment_status, delivered_at, problem_reason, refunded_pence, version, order_items(*, order_item_options(option_label, group_name), drinks(contains_alcohol))";
 
 // How often to re-check even when live updates are working: the safety net for
 // an iPad that dozed off or missed a message.
@@ -19,7 +19,7 @@ export type BarSettings = { paused: boolean; amber: number; red: number; staffSt
 // Start of the trading day in the pub's timezone (6am, so a late night's
 // orders stay together after midnight), for the "Fulfilled today" list.
 const DAY_STARTS_AT = 6;
-function startOfTodayLondon(): string {
+export function startOfTodayLondon(): string {
   const now = new Date();
   const london = new Date(now.toLocaleString("en-US", { timeZone: "Europe/London" }));
   const offset = now.getTime() - london.getTime();
@@ -30,7 +30,7 @@ function startOfTodayLondon(): string {
 
 // A reload that never answers would block every later one, so give up after this.
 const REQUEST_TIMEOUT_MS = 12_000;
-function timeoutSignal(ms: number): AbortSignal {
+export function timeoutSignal(ms: number): AbortSignal {
   const c = new AbortController(); // AbortSignal.timeout isn't on older iPads
   window.setTimeout(() => c.abort(), ms);
   return c.signal;

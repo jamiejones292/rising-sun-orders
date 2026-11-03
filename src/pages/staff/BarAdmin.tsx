@@ -18,11 +18,13 @@ const LOCK_AFTER_S = 300;
 export default function BarAdmin({
   paused,
   problemOrders,
+  earlierOrders,
   onClose,
   onChanged,
 }: {
   paused: boolean;
   problemOrders: BarOrder[];
+  earlierOrders: BarOrder[];
   onClose: () => void;
   onChanged: () => void;
 }) {
@@ -36,6 +38,7 @@ export default function BarAdmin({
           manager={manager}
           paused={paused}
           problemOrders={problemOrders}
+          earlierOrders={earlierOrders}
           onLock={() => {
             void client.auth.signOut({ scope: "local" });
             onClose();
@@ -138,6 +141,7 @@ function AdminPanel({
   manager,
   paused,
   problemOrders,
+  earlierOrders,
   onLock,
   onChanged,
 }: {
@@ -145,6 +149,7 @@ function AdminPanel({
   manager: StaffProfile;
   paused: boolean;
   problemOrders: BarOrder[];
+  earlierOrders: BarOrder[];
   onLock: () => void;
   onChanged: () => void;
 }) {
@@ -202,6 +207,18 @@ function AdminPanel({
     if (error) return toast(friendlyError(error), { error: true });
     onChanged();
     toast(paused ? "Online ordering resumed" : "Online ordering paused for every customer");
+  }
+
+  // "Close without serving" asks once more (the order id waiting for a second tap).
+  const [closing, setClosing] = useState<string | null>(null);
+  async function closeOrder(o: BarOrder) {
+    if (closing !== o.id) return setClosing(o.id);
+    setClosing(null);
+    const reason = o.problem_reason ?? "Not served (left over from an earlier day)";
+    const { error } = await client.rpc("staff_close_order", { p_order_id: o.id, p_reason: reason });
+    if (error) return toast(friendlyError(error), { error: true });
+    onChanged();
+    toast(`Order #${o.order_number} closed without serving. Refund it if the customer paid for drinks they didn't get.`);
   }
 
   async function clearProblem(o: BarOrder) {
@@ -267,25 +284,35 @@ function AdminPanel({
               {paused ? "RESUME ONLINE ORDERS" : "PAUSE ONLINE ORDERS"}
             </button>
           </div>
-          {problemOrders.length > 0 && (
+          {problemOrders.length + earlierOrders.length > 0 && (
             <>
-              <h3 className="mt-2 font-sans text-base font-bold text-forest">Problems reported</h3>
-              {problemOrders.map((o) => (
-                <div key={o.id} className="flex items-center justify-between gap-3 border-t border-vellum py-2">
+              <h3 className="mt-2 font-sans text-base font-bold text-forest">Needs a manager</h3>
+              {[...problemOrders, ...earlierOrders].map((o) => (
+                <div key={o.id} className="flex flex-col gap-2 border-t border-vellum py-2.5">
                   <span className="min-w-0 text-sm">
                     <b className="tabular-nums">
                       #{o.order_number} · Table {o.table_label}
                     </b>
                     <br />
-                    <small className="text-bar-red">{o.problem_reason}</small>
+                    <small className="text-bar-red">{o.problem_reason ?? "Paid before 6am today and never finished"}</small>
                   </span>
-                  <span className="flex shrink-0 gap-1.5">
+                  <span className="flex flex-wrap gap-1.5">
                     <button onClick={() => setRefunding(o.id)} className="min-h-10 rounded-lg border-2 border-line bg-white px-3 text-sm font-extrabold text-forest">
                       Refund
                     </button>
-                    <button onClick={() => void clearProblem(o)} className="min-h-10 rounded-lg border-2 border-line bg-white px-3 text-sm font-extrabold text-forest">
-                      Clear
-                    </button>
+                    {o.problem_reason && (
+                      <button onClick={() => void clearProblem(o)} className="min-h-10 rounded-lg border-2 border-line bg-white px-3 text-sm font-extrabold text-forest">
+                        Clear
+                      </button>
+                    )}
+                    {o.fulfilment_status !== "delivered" && (
+                      <button
+                        onClick={() => void closeOrder(o)}
+                        className={`min-h-10 rounded-lg border-2 px-3 text-sm font-extrabold ${closing === o.id ? "border-bar-red bg-bar-red text-white" : "border-line bg-white text-bar-red"}`}
+                      >
+                        {closing === o.id ? "Tap again to close" : "Close without serving"}
+                      </button>
+                    )}
                   </span>
                 </div>
               ))}

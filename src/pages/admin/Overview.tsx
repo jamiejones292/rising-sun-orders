@@ -26,6 +26,11 @@ export default function Overview() {
   const outOfStock = live.filter((d) => !d.available || d.drink_variants.some((v) => !v.archived_at && !v.available));
   const tablesOff = venue.tables.filter((t) => !t.active);
   const hiddenCats = menuCats.filter((c) => !c.visible);
+  // Only worth flagging a hidden category that still has drinks in it (the old
+  // menu's empty categories stay hidden quietly).
+  const hiddenWithDrinks = hiddenCats
+    .map((c) => ({ c, n: live.filter((d) => d.category_id === c.id).length }))
+    .filter((x) => x.n > 0);
   const hour = Number(new Intl.DateTimeFormat("en-GB", { hour: "numeric", hourCycle: "h23", timeZone: "Europe/London" }).format(new Date()));
   const greeting = hour < 12 ? "Bore da" : hour < 18 ? "Prynhawn da" : "Noswaith dda";
 
@@ -55,7 +60,7 @@ export default function Overview() {
         <Tile label="Categories shown" value={menuCats.length - hiddenCats.length} note={`${hiddenCats.length} hidden`} />
       </div>
       <Panel title="Needs attention">
-        {outOfStock.length + tablesOff.length + hiddenCats.length === 0 ? (
+        {outOfStock.length + tablesOff.length + hiddenWithDrinks.length === 0 ? (
           <p className="text-muted">Everything is on: all drinks, sizes and tables are available.</p>
         ) : (
           <ul className="flex flex-col">
@@ -72,10 +77,12 @@ export default function Overview() {
                 <span>Out of stock. Customers can't order {d.available ? "this size" : "it"}.</span>
               </Attention>
             ))}
-            {hiddenCats.map((c) => (
+            {hiddenWithDrinks.map(({ c, n }) => (
               <Attention key={c.id} to="/admin/categories" tone="neutral" mark="–">
                 <b>{c.name} is hidden</b>
-                <span>None of its drinks show on the menu.</span>
+                <span>
+                  Its {n} drink{n === 1 ? "" : "s"} don't show on the menu.
+                </span>
               </Attention>
             ))}
             {owner &&
@@ -89,13 +96,20 @@ export default function Overview() {
         )}
       </Panel>
       <p className="text-sm text-muted">
-        Sales reports and real card refunds arrive once payments are set up.
+        Takings and best sellers are on the Sales page. Real card refunds arrive once card payments are set up; until then refunds are practice ones on test orders.
       </p>
     </>
   );
 }
 
-type ProblemOrder = { id: string; order_number: number; table_label: string; problem_reason: string; problem_reported_at: string | null };
+type ProblemOrder = {
+  id: string;
+  order_number: number;
+  table_label: string;
+  problem_reason: string;
+  problem_reported_at: string | null;
+  fulfilment_status: string;
+};
 
 // Orders the bar has flagged ("Problem with this order") and not yet cleared.
 // Live updates on orders, with a 30-second check as the safety net. The tab
@@ -105,7 +119,7 @@ function useProblemOrders() {
   const reload = useCallback(async () => {
     const { data } = await supabase
       .from("orders")
-      .select("id, order_number, table_label, problem_reason, problem_reported_at")
+      .select("id, order_number, table_label, problem_reason, problem_reported_at, fulfilment_status")
       .not("problem_reason", "is", null)
       .eq("payment_status", "paid")
       .order("problem_reported_at");
@@ -145,6 +159,17 @@ function ProblemsPanel({ orders, onChanged }: { orders: ProblemOrder[]; onChange
     toast(`Problem cleared on order #${o.order_number}`);
   }
 
+  // Takes it off the bar screen without serving it (asks once more first).
+  const [closing, setClosing] = useState<string | null>(null);
+  async function close(o: ProblemOrder) {
+    if (closing !== o.id) return setClosing(o.id);
+    setClosing(null);
+    const { error } = await supabase.rpc("staff_close_order", { p_order_id: o.id, p_reason: o.problem_reason });
+    if (error) return toast(friendlyError(error), { error: true });
+    await onChanged();
+    toast(`Order #${o.order_number} closed without serving. Refund it if the customer paid for drinks they didn't get.`);
+  }
+
   return (
     <section className="flex flex-col gap-2 rounded-md border-2 border-alert bg-[#fbeae5] p-4.5">
       <h2 className="text-2xl font-semibold text-alert">
@@ -161,18 +186,26 @@ function ProblemsPanel({ orders, onChanged }: { orders: ProblemOrder[]; onChange
               <br />
               <span className="text-alert">{o.problem_reason}</span>
             </span>
-            <span className="flex gap-2">
+            <span className="flex flex-wrap gap-2">
               <Button small onClick={() => setRefunding(o.id)}>
                 Refund
               </Button>
               <Button variant="ghost" small onClick={() => void clear(o)}>
                 Clear
               </Button>
+              {o.fulfilment_status !== "delivered" && o.fulfilment_status !== "cancelled" && (
+                <Button variant={closing === o.id ? "danger" : "danger-ghost"} small onClick={() => void close(o)}>
+                  {closing === o.id ? "Tap again to close" : "Close without serving"}
+                </Button>
+              )}
             </span>
           </li>
         ))}
       </ul>
-      <small className="text-muted">Refunding clears the problem. Use Clear if it was sorted another way, e.g. a swap at the bar.</small>
+      <small className="text-muted">
+        Refunding clears the problem. Use Clear if it was sorted another way, e.g. a swap at the bar. Close without serving takes an order off
+        the bar screen when none of it will be served (refund it too).
+      </small>
       {refunding && <RefundPanel client={supabase} orderId={refunding} onClose={() => setRefunding(null)} onDone={() => void onChanged()} />}
     </section>
   );

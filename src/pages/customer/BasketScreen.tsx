@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { formatPence } from "../../lib/money";
-import { PROBLEM_TEXT, priceLine, type BasketLine } from "../../lib/pricing";
+import { MAX_QUANTITY, PROBLEM_TEXT, priceLine, type BasketLine } from "../../lib/pricing";
 import type { CustomerMenu } from "./useCustomerMenu";
 
 export default function BasketScreen({
@@ -65,10 +65,16 @@ export default function BasketScreen({
                         −
                       </button>
                       <output className="min-w-6 text-center font-bold tabular-nums">{l.quantity}</output>
-                      <button aria-label="One more" onClick={() => onQuantity(i, l.quantity + 1)} className="h-full w-9.5 text-lg text-forest">
+                      <button
+                        aria-label="One more"
+                        disabled={l.quantity >= MAX_QUANTITY}
+                        onClick={() => onQuantity(i, l.quantity + 1)}
+                        className="h-full w-9.5 text-lg text-forest disabled:opacity-35"
+                      >
                         +
                       </button>
                     </div>
+                    {l.quantity >= MAX_QUANTITY && <small className="text-muted">Max {MAX_QUANTITY}</small>}
                     {p.ok || p.reason === "choice_required" || p.reason === "option_unavailable" || p.reason === "size_unavailable" ? (
                       <button onClick={() => onEdit(i)} className="py-1.5 font-semibold text-gold-ink underline underline-offset-3">
                         Change

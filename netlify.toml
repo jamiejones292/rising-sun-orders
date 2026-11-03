@@ -45,6 +45,9 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    # Browsers only ever use HTTPS for the site (the app's own security
+    # policy is added as a <meta> tag at build time, see vite.config.ts).
+    Strict-Transport-Security = "max-age=31536000"
 
 # Customers' order pages are private links: keep them out of search results.
 [[headers]]

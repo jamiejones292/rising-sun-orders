@@ -9,17 +9,14 @@ import BarAdmin from "./BarAdmin";
 import StockList from "./StockList";
 import OrderDetail from "./OrderDetail";
 import { FulfilledList, OrderCards, Summary } from "./Board";
-import { useBarOrders } from "./useBarOrders";
+import { startOfTodayLondon, timeoutSignal, useBarOrders } from "./useBarOrders";
 import { chime, disableSound, enableSound, keepAwake, soundOn } from "./alerts";
-import { drinkCount, hm, loadSeen, saveSeen } from "./barUtils";
+import { drinkCount, hm, isTest, loadSeen, plural, saveSeen } from "./barUtils";
 
 export default function StaffApp() {
-  useEffect(() => {
-    document.title = "Bar orders · The Rising Sun Inn";
-  }, []);
   return (
     <AuthProvider>
-      <ToastProvider>
+      <ToastProvider placement="bottom">
         <StaffGate />
       </ToastProvider>
     </AuthProvider>
@@ -77,6 +74,22 @@ function BarScreen() {
     return () => window.clearTimeout(id);
   }, [alert]);
 
+  // Unopened new orders: counted in the tab title, and the chime repeats every
+  // minute while one has waited over a minute, so nothing sits unnoticed.
+  const unopened = open.filter((o) => o.fulfilment_status === "new" && !seen.has(o.id));
+  const unopenedCount = unopened.length;
+  useEffect(() => {
+    document.title = `${unopenedCount ? `(${unopenedCount}) ` : ""}Bar orders · The Rising Sun Inn`;
+  }, [unopenedCount]);
+  const unopenedRef = useRef(unopened);
+  unopenedRef.current = unopened;
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      if (unopenedRef.current.some((o) => Date.now() - new Date(o.paid_at).getTime() > 60_000)) chime();
+    }, 60_000);
+    return () => window.clearInterval(id);
+  }, []);
+
   const markSeen = (id: string) =>
     setSeen((prev) => {
       if (prev.has(id)) return prev;
@@ -87,6 +100,7 @@ function BarScreen() {
 
   const openOrder = (id: string) => {
     markSeen(id);
+    setQuery(""); // a leftover search would hide new orders when they come back
     setAlert(null);
     setOpenId(id);
     window.scrollTo(0, 0);
@@ -96,6 +110,10 @@ function BarScreen() {
   const q = query.trim().replace(/^#/, "").toLowerCase();
   const matches = (o: BarOrder) => !q || String(o.order_number).includes(q) || o.table_label.toLowerCase() === q;
   const shownOpen = useMemo(() => open.filter(matches), [open, q]);
+  // Orders paid before this trading day started (6am) go in "From earlier".
+  const dayStart = startOfTodayLondon();
+  const todayOpen = shownOpen.filter((o) => o.paid_at >= dayStart);
+  const earlierOpen = shownOpen.filter((o) => o.paid_at < dayStart);
   const shownDone = useMemo(() => done.filter(matches), [done, q]);
 
   const current = openId ? open.find((o) => o.id === openId) : undefined;
@@ -111,6 +129,10 @@ function BarScreen() {
     if (gone?.id === openId) toast(`Order #${gone.order_number} (Table ${gone.table_label}) was finished or refunded on another iPad`);
   }, [openId, current, loaded, toast]);
 
+  // Tick saves still on their way: ORDER FULFILLED waits for them first.
+  const saving = useRef(new Set<Promise<unknown>>());
+  const waitForTicks = () => Promise.allSettled([...saving.current]);
+
   // Tick a drink straight away on screen, then save; undo on failure.
   async function tick(itemId: string, ticked: boolean) {
     const patch = (value: boolean) =>
@@ -119,7 +141,12 @@ function BarScreen() {
       );
     patch(ticked);
     const seq = markTick(itemId, ticked);
-    const { error } = await supabase.rpc("staff_set_item_ticked", { p_item_id: itemId, p_ticked: ticked });
+    const save = Promise.resolve(
+      supabase.rpc("staff_set_item_ticked", { p_item_id: itemId, p_ticked: ticked }).abortSignal(timeoutSignal(12_000)),
+    );
+    saving.current.add(save);
+    const { error } = await save;
+    saving.current.delete(save);
     settleTick(itemId, seq, !error);
     if (error) {
       patch(!ticked);
@@ -150,7 +177,14 @@ function BarScreen() {
   if (current) {
     return (
       <>
-        <OrderDetail order={current} onBack={() => setOpenId(null)} onTick={tick} onFulfilled={fulfilled} onChanged={() => void refresh()} />
+        <OrderDetail
+          order={current}
+          onBack={() => setOpenId(null)}
+          onTick={tick}
+          waitForTicks={waitForTicks}
+          onFulfilled={fulfilled}
+          onChanged={() => void refresh()}
+        />
         {alert && alert.id !== current.id && <NewOrderAlert order={alert} onOpen={() => openOrder(alert.id)} />}
       </>
     );
@@ -221,6 +255,11 @@ function BarScreen() {
           ONLINE ORDERING PAUSED <span className="font-medium opacity-90">Customers can browse but can't pay. Finish the orders below, then resume.</span>
         </div>
       )}
+      {!sound && (
+        <div className="gutter flex flex-wrap items-center gap-x-3.5 gap-y-2 bg-[#5a1712] py-2.5 font-bold text-[#ffd2cb]">
+          SOUND IS OFF <span className="font-medium opacity-90">New orders won't chime. Tap "Enable sound" at the top.</span>
+        </div>
+      )}
       {connection === "offline" && (
         <div className="gutter flex flex-wrap items-center gap-x-3.5 gap-y-2 bg-[#5a1712] py-3 font-bold text-[#ffd2cb]">
           CONNECTION LOST. RECONNECTING…
@@ -234,15 +273,19 @@ function BarScreen() {
         <p className="gutter py-16 text-center text-gold-soft">Loading orders…</p>
       ) : tab === "open" ? (
         <>
-          <Summary orders={shownOpen} />
+          {q && <SearchBar query={query} shown={shownOpen.length} total={open.length} onClear={() => setQuery("")} />}
+          <Summary orders={open} oldest={open.find((o) => o.paid_at >= dayStart) ?? open[0]} />
           {q && shownOpen.length === 0 && open.length > 0 ? (
             <p className="gutter py-10 text-center text-gold-soft">No waiting order matches "{query}". Check the Fulfilled today tab.</p>
           ) : (
-            <OrderCards orders={shownOpen} settings={settings} seen={seen} onOpen={openOrder} />
+            <OrderCards orders={todayOpen} earlier={earlierOpen} settings={settings} seen={seen} onOpen={openOrder} />
           )}
         </>
       ) : (
-        <FulfilledList orders={shownDone} onReopen={(o) => void reopen(o)} />
+        <>
+          {q && <SearchBar query={query} shown={shownDone.length} total={done.length} onClear={() => setQuery("")} />}
+          <FulfilledList orders={shownDone} onReopen={(o) => void reopen(o)} />
+        </>
       )}
 
       {alert && <NewOrderAlert order={alert} onOpen={() => openOrder(alert.id)} />}
@@ -251,6 +294,7 @@ function BarScreen() {
         <BarAdmin
           paused={settings.paused}
           problemOrders={[...open, ...done].filter((o) => o.problem_reason)}
+          earlierOrders={open.filter((o) => o.paid_at < dayStart && !o.problem_reason)}
           onClose={() => setAdmin(false)}
           onChanged={() => void refresh()}
         />
@@ -289,6 +333,17 @@ function StockPanel({ onClose }: { onClose: () => void }) {
   );
 }
 
+function SearchBar({ query, shown, total, onClear }: { query: string; shown: number; total: number; onClear: () => void }) {
+  return (
+    <div className="gutter flex flex-wrap items-center gap-3 bg-gold-soft py-2 font-bold text-forest">
+      Showing {shown} of {total} matching "{query}"
+      <button onClick={onClear} className="min-h-10 rounded-md bg-forest px-4 text-ivory">
+        Clear search
+      </button>
+    </div>
+  );
+}
+
 function TabButton({ active, onClick, label, count }: { active: boolean; onClick: () => void; label: string; count: number }) {
   return (
     <button
@@ -317,13 +372,15 @@ function NewOrderAlert({ order, onOpen }: { order: BarOrder; onOpen: () => void 
     <button
       role="alert"
       onClick={onOpen}
-      className="fixed top-[calc(env(safe-area-inset-top,0px)+0.9rem)] left-1/2 z-30 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-4 rounded-[10px] bg-gold-bright px-5.5 py-4 text-left text-white shadow-[0_12px_34px_rgba(0,0,0,.45)]"
+      className={`fixed top-[calc(env(safe-area-inset-top,0px)+0.9rem)] left-1/2 z-50 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-4 rounded-[10px] bg-gold-bright px-5.5 py-4 text-left text-white shadow-[0_12px_34px_rgba(0,0,0,.45)] ${isTest(order) ? "ring-4 ring-ink" : ""}`}
     >
       <span>
-        <b className="text-2xl font-extrabold tracking-wide">NEW ORDER · TABLE {order.table_label}</b>
+        <b className="text-2xl font-extrabold tracking-wide">
+          {isTest(order) ? "TEST " : "NEW "}ORDER · TABLE {order.table_label}
+        </b>
         <br />
         <span className="text-[0.95rem] tabular-nums">
-          #{order.order_number} · {drinkCount(order)} drinks · {hm(order.paid_at)} · tap to open
+          #{order.order_number} · {plural(drinkCount(order), "drink")} · {hm(order.paid_at)} · tap to open
         </span>
       </span>
     </button>

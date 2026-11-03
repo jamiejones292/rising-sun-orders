@@ -86,7 +86,7 @@ function AdminShell() {
         </div>
         <nav
           aria-label="Admin sections"
-          className="flex gap-0.5 overflow-x-auto px-3 pt-1 pb-2.5 [scrollbar-width:none] lg:flex-col lg:overflow-visible lg:pt-5"
+          className="flex gap-0.5 overflow-x-auto px-3 pt-1 pb-2.5 [scrollbar-width:none] md:flex-wrap md:overflow-visible lg:flex-col lg:flex-nowrap lg:pt-5"
         >
           {NAV.filter((n) => owner || !n.owner).map((n) => (
             <NavLink

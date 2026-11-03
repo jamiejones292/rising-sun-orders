@@ -17,13 +17,25 @@ const ALSO: Record<string, string[]> = {
   bubbly: ["prosecco", "champagne"],
   fizz: ["prosecco", "champagne"],
   kids: ["fruit shoot", "milkshake"],
+  "g&t": ["gin"],
+  gt: ["gin"],
+  jd: ["jack daniel"],
+  j20: ["j2o"],
+  ale: ["draught beer"],
+  bitter: ["draught beer"],
+  shandy: ["lager", "lemonade"],
+  vino: ["wine"],
 };
+
+// Words that don't help find a drink ("a pint of lager" searches for "lager").
+const STOP = new Set(["a", "an", "and", "of", "the", "with", "glass", "pint", "half", "bottle", "&", "please", "some"]);
 
 // For search: ignore capitals and accents, so "jager" finds Jägermeister and "rose" finds Rosé.
 const plain = (s: string) =>
   s
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
+    .replace(/['’]/g, "") // "gordons" finds Gordon's
     .toLowerCase();
 
 // Search box and category buttons. They sit in the page's sticky header, so
@@ -64,6 +76,8 @@ export function MenuToolbar({
               onQuery(e.target.value);
               window.scrollTo({ top: 0 });
             }}
+            // "Search" on the keyboard closes it, so the results can be seen.
+            onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
             className="h-10.5 w-full rounded-full border-0 bg-ivory pr-10 pl-9.5 text-[1rem] text-ink placeholder:text-muted/80"
           />
           {searching && (
@@ -122,15 +136,24 @@ export default function MenuScreen({
   // Drinks matching by name or category come first; descriptions are only
   // searched when nothing matches by name (so "fruit" finds the Fruit Shoot, not
   // every "fruity" drink).
-  const words = plain(query).split(/\s+/).filter(Boolean);
+  const typed = plain(query).split(/\s+/).filter(Boolean);
+  const useful = typed.filter((w) => !STOP.has(w));
+  const words = useful.length ? useful : typed;
   const catName = (d: MenuDrink) => menu.categories.find((c) => c.id === d.category_id)?.name ?? "";
   // Each word must match the start of a word, so "rose" finds Rosé but not Prosecco.
   const esc = (w: string) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const starts = words.map((w) => new RegExp(`(^|[^a-z0-9])(${[w, ...(ALSO[w] ?? [])].map(esc).join("|")})`));
-  const hits = (text: string) => starts.every((r) => r.test(plain(text)));
-  const byName = words.length > 0 && menu.drinks.some((d) => d.variants.length > 0 && hits(`${d.name} ${catName(d)}`));
+  const all = (text: string) => starts.every((r) => r.test(plain(text)));
+  const some = (text: string) => starts.some((r) => r.test(plain(text)));
+  const onMenu = menu.drinks.filter((d) => d.category_visible && d.variants.length > 0);
+  // Best first: every word in the name or category; then every word anywhere
+  // (descriptions too); last, any one word in the name, so a typo in one word
+  // still finds something.
+  const mode: "name" | "desc" | "any" =
+    onMenu.some((d) => all(`${d.name} ${catName(d)}`)) ? "name" : onMenu.some((d) => all(`${d.name} ${d.description ?? ""} ${catName(d)}`)) ? "desc" : "any";
   const matches = (d: MenuDrink, cat: string) =>
-    !words.length || (byName ? hits(`${d.name} ${cat}`) : hits(`${d.name} ${d.description ?? ""} ${cat}`));
+    !words.length ||
+    (mode === "name" ? all(`${d.name} ${cat}`) : mode === "desc" ? all(`${d.name} ${d.description ?? ""} ${cat}`) : words.length > 1 && some(`${d.name} ${cat}`));
   const sections = menu.categories
     .filter((c) => words.length > 0 || category === "all" || c.id === category)
     .map((c) => ({ cat: c, drinks: menu.drinks.filter((d) => d.category_id === c.id && d.variants.length > 0 && matches(d, c.name)) }))
@@ -147,6 +170,9 @@ export default function MenuScreen({
               Clear the search
             </button>
           </div>
+        )}
+        {words.length > 1 && mode === "any" && sections.length > 0 && (
+          <p className="m-0 pt-4 text-sm text-muted">Nothing matches all of “{query.trim()}”, so here are drinks matching some of it.</p>
         )}
         {sections.map(({ cat, drinks }) => (
           <section key={cat.id} className="pt-6.5 pb-1">

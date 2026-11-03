@@ -84,7 +84,7 @@ export default function Extras() {
   const drinkById = useMemo(() => new Map(drinks.map((d) => [d.id, d])), [drinks]);
 
   // Save one change straight away; reload if it fails so the screen is right.
-  async function saveOption(o: Option, patch: Partial<Option>, message?: string) {
+  async function saveOption(o: Option, patch: Partial<Option>, message?: string, undo?: () => void) {
     setOptions((all) => all.map((x) => (x.id === o.id ? { ...x, ...patch } : x)));
     const { error: err } = await supabase.from("modifier_options").update(patch).eq("id", o.id);
     if (err) {
@@ -93,17 +93,17 @@ export default function Extras() {
     }
     // Linking to a drink copies that drink's stock in the database.
     if ("linked_drink_id" in patch) await reload();
-    if (message) toast(message);
+    if (message) toast(message, undo ? { undo } : undefined);
   }
 
-  async function saveGroup(g: Group, patch: Partial<Group>, message: string) {
+  async function saveGroup(g: Group, patch: Partial<Group>, message: string, undo?: () => void) {
     setGroups((all) => all && all.map((x) => (x.id === g.id ? { ...x, ...patch } : x)));
     const { error: err } = await supabase.from("modifier_groups").update(patch).eq("id", g.id);
     if (err) {
       toast(friendlyError(err), { error: true });
       return reload();
     }
-    toast(message);
+    toast(message, undo ? { undo } : undefined);
   }
 
   async function move(list: Option[], index: number, by: -1 | 1) {
@@ -195,8 +195,8 @@ function GroupPanel({
   drinks: DrinkRef[];
   drinkById: Map<string, DrinkRef>;
   usedOn: number;
-  onSaveGroup: (g: Group, patch: Partial<Group>, message: string) => Promise<void>;
-  onSaveOption: (o: Option, patch: Partial<Option>, message?: string) => Promise<void>;
+  onSaveGroup: (g: Group, patch: Partial<Group>, message: string, undo?: () => void) => Promise<void>;
+  onSaveOption: (o: Option, patch: Partial<Option>, message?: string, undo?: () => void) => Promise<void>;
   onMove: (list: Option[], index: number, by: -1 | 1) => Promise<void>;
   onAdded: () => Promise<void>;
 }) {
@@ -208,6 +208,10 @@ function GroupPanel({
   const [showRemoved, setShowRemoved] = useState(false);
   const current = options.filter((o) => !o.archived_at).sort((a, b) => a.sort_order - b.sort_order);
   const removed = options.filter((o) => o.archived_at);
+  // Renaming the mixer list without the word "mixer" asks first.
+  const [pendingName, setPendingName] = useState<string | null>(null);
+  const [nameKey, setNameKey] = useState(0);
+  const noneInStock = group.required && usedOn > 0 && !current.some((o) => o.available);
 
   async function add(e: FormEvent) {
     e.preventDefault();
@@ -233,7 +237,7 @@ function GroupPanel({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0 flex-[1_1_260px]">
           <input
-            key={`name-${group.name}`}
+            key={`name-${group.name}-${nameKey}`}
             id={`group-name-${group.id}`}
             aria-label="List name"
             defaultValue={group.name}
@@ -245,16 +249,25 @@ function GroupPanel({
                 return;
               }
               // The drink form finds the mixer list by the word "mixer" in its name.
-              if (/mixer/i.test(group.name) && !/mixer/i.test(name) &&
-                  !window.confirm(`Keep the word "mixer" in this list's name? The drink form uses it to find the mixer list for spirits. Rename anyway?`)) {
-                e.target.value = group.name;
-                return;
-              }
+              if (/mixer/i.test(group.name) && !/mixer/i.test(name)) return setPendingName(name);
               void onSaveGroup(group, { name }, "List renamed");
             }}
             onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
             className={`${inputClass} max-w-[340px] font-display text-2xl font-semibold`}
           />
+          {pendingName !== null && (
+            <div className="mt-2 flex flex-col gap-2 rounded border border-alert bg-[#fbeae5] p-2.5 text-sm text-alert">
+              Keep the word "mixer" in this list's name? The drink form uses it to find the mixer list for spirits.
+              <span className="flex flex-wrap gap-2">
+                <Button variant="ghost" small onClick={() => (setPendingName(null), setNameKey((k) => k + 1))}>
+                  Keep "{group.name}"
+                </Button>
+                <Button variant="danger" small onClick={() => (void onSaveGroup(group, { name: pendingName }, "List renamed"), setPendingName(null))}>
+                  Rename to "{pendingName}" anyway
+                </Button>
+              </span>
+            </div>
+          )}
           <div className="mt-1 text-xs text-muted">
             Offered on {usedOn} drink{usedOn === 1 ? "" : "s"} · tick it on a drink in Drinks → Edit
           </div>
@@ -266,12 +279,20 @@ function GroupPanel({
             showText={false}
             label={`${group.name}: customers must choose one`}
             onChange={(required) =>
-              void onSaveGroup(group, { required }, required ? `Customers must now choose from ${group.name}` : `${group.name} is now optional`)
+              void onSaveGroup(group, { required }, required ? `Customers must now choose from ${group.name}` : `${group.name} is now optional`, () =>
+                void onSaveGroup(group, { required: !required }, required ? `${group.name} is optional again` : `Customers must choose from ${group.name} again`),
+              )
             }
           />
         </label>
       </div>
 
+      {noneInStock && (
+        <p className="m-0 rounded border border-alert bg-[#fbeae5] p-2.5 text-sm font-semibold text-alert">
+          Customers must choose from this list, but no choice is in stock, so the {usedOn} drink{usedOn === 1 ? "" : "s"} offering it can't be
+          ordered. Switch a choice back on, or make the list optional.
+        </p>
+      )}
       <ul className="flex flex-col">
         {current.map((o, i) => {
           const linked = o.linked_drink_id ? drinkById.get(o.linked_drink_id) : undefined;
@@ -315,6 +336,7 @@ function GroupPanel({
               <span className="relative col-start-2 sm:col-start-auto">
                 <span className="absolute top-1/2 left-3 -translate-y-1/2 text-muted">+£</span>
                 <input
+                  key={`price-${o.price_pence}`} // shows the saved price after a save or reload
                   id={`opt-price-${o.id}`}
                   aria-label={`Extra charge for ${o.label}`}
                   inputMode="decimal"
@@ -366,7 +388,11 @@ function GroupPanel({
                 <Button
                   variant="danger-ghost"
                   small
-                  onClick={() => void onSaveOption(o, { archived_at: new Date().toISOString() }, `${o.label} removed. Customers can't choose it any more.`)}
+                  onClick={() =>
+                    void onSaveOption(o, { archived_at: new Date().toISOString() }, `${o.label} removed. Customers can't choose it any more.`, () =>
+                      void onSaveOption(o, { archived_at: null, linked_drink_id: o.linked_drink_id }, `${o.label} restored`),
+                    )
+                  }
                 >
                   Remove
                 </Button>

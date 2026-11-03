@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { CustomerMenu } from "./useCustomerMenu";
 
 export type CheckoutDetails = { table: string; ageConfirmed: boolean; email: string };
@@ -29,6 +29,18 @@ export default function TableScreen({
   const [emailTouched, setEmailTouched] = useState(false);
   const emailOk = !email.trim() || EMAIL_RE.test(email.trim());
   const ready = !!table && (!needsAge || age) && emailOk;
+  // Continue stays tappable: if something's missing it scrolls to it and says so.
+  const [tried, setTried] = useState(false);
+  const ageRef = useRef<HTMLLabelElement>(null);
+
+  function next() {
+    if (ready && table) return onContinue({ table, ageConfirmed: age, email: email.trim() });
+    setTried(true);
+    setEmailTouched(true);
+    const missing = !table ? document.getElementById("table-input") : needsAge && !age ? ageRef.current : document.getElementById("receipt-email");
+    missing?.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (!table) (missing as HTMLInputElement | null)?.focus({ preventScroll: true });
+  }
 
   function onType(value: string) {
     setTyped(value);
@@ -66,6 +78,7 @@ export default function TableScreen({
         className="h-13 rounded border border-line bg-paper px-3.5 text-[1.05rem]"
       />
       {typedError && <p className="-mt-2 text-sm text-alert">{typedError}</p>}
+      {tried && !table && !typedError && <p className="-mt-2 text-sm font-semibold text-alert">Choose your table number first.</p>}
       <div className="grid grid-cols-5 gap-2">
         {menu.tables.map((t) => (
           <button
@@ -83,9 +96,15 @@ export default function TableScreen({
         ))}
       </div>
       {needsAge && (
-        <label className="flex items-start gap-3 rounded border border-gold bg-paper p-3.5 text-[0.92rem]">
+        <label
+          ref={ageRef}
+          className={`flex items-start gap-3 rounded border bg-paper p-3.5 text-[0.92rem] ${tried && !age ? "border-2 border-alert" : "border-gold"}`}
+        >
           <input id="age-confirm" type="checkbox" checked={age} onChange={(e) => setAge(e.target.checked)} className="mt-0.5 h-5.5 w-5.5 shrink-0 accent-forest" />
-          <span>{menu.settings.age_declaration_text}</span>
+          <span>
+            {menu.settings.age_declaration_text}
+            {tried && !age && <b className="mt-1 block text-alert">Tick this box to order drinks with alcohol.</b>}
+          </span>
         </label>
       )}
       <div className="flex flex-col gap-2">
@@ -114,9 +133,9 @@ export default function TableScreen({
       </div>
       <div className="fixed bottom-0 left-1/2 z-6 w-full max-w-[440px] -translate-x-1/2 bg-gradient-to-t from-ivory from-70% to-transparent pt-3 pb-[calc(0.9rem+env(safe-area-inset-bottom,0px))] pr-[max(0.9rem,env(safe-area-inset-right,0px))] pl-[max(0.9rem,env(safe-area-inset-left,0px))]">
         <button
-          disabled={!ready}
-          onClick={() => table && onContinue({ table, ageConfirmed: age, email: email.trim() })}
-          className="flex min-h-13.5 w-full items-center justify-between rounded border border-forest bg-forest px-4.5 font-semibold text-ivory disabled:opacity-45"
+          onClick={next}
+          aria-disabled={!ready}
+          className={`flex min-h-13.5 w-full items-center justify-between rounded border border-forest bg-forest px-4.5 font-semibold text-ivory ${ready ? "" : "opacity-60"}`}
         >
           <span>{table ? `Continue with Table ${table}` : "Choose a table to continue"}</span>
           <span aria-hidden="true">→</span>

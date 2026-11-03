@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { useMenuData } from "../../lib/adminData";
 import { friendlyError } from "../../lib/errors";
 import { formatPence } from "../../lib/money";
 import { Panel } from "../../components/ui";
@@ -75,6 +76,18 @@ export default function Sales() {
   const [sortBy, setSortBy] = useState<"quantity" | "revenue_pence">("quantity");
   const [stats, setStats] = useState<Stats | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Top 20 unless "Show all"; optionally one category (matched by drink name,
+  // since orders keep the name as sold).
+  const [showAll, setShowAll] = useState(false);
+  const [cat, setCat] = useState("all");
+  const { data: menu } = useMenuData();
+  const catOf = useMemo(() => {
+    const byName = new Map<string, string>();
+    for (const d of [...(menu?.drinks ?? [])].sort((a, b) => Number(!!b.archived_at) - Number(!!a.archived_at))) {
+      byName.set(d.name, menu?.categories.find((c) => c.id === d.category_id)?.name ?? "Other");
+    }
+    return (name: string) => byName.get(name) ?? "Other";
+  }, [menu]);
 
   const { from, to } = range(period, anchor);
   const isCurrent = to > today;
@@ -114,8 +127,12 @@ export default function Sales() {
     } else {
       list = stats.items.map((it) => ({ key: `${it.name}|${it.size}`, name: it.name, detail: it.size, quantity: it.quantity, revenue_pence: it.revenue_pence }));
     }
-    return list.sort((a, b) => b[sortBy] - a[sortBy] || a.name.localeCompare(b.name));
-  }, [stats, combine, sortBy]);
+    return list
+      .filter((r) => cat === "all" || catOf(r.name) === cat)
+      .sort((a, b) => b[sortBy] - a[sortBy] || a.name.localeCompare(b.name));
+  }, [stats, combine, sortBy, cat, catOf]);
+  const cats = useMemo(() => [...new Set((stats?.items ?? []).map((it) => catOf(it.name)))].sort(), [stats, catOf]);
+  const TOP = 20;
 
   const extras = (stats?.extras ?? []).filter((x) => !/^no\b/i.test(x.label)).sort((a, b) => b.quantity - a.quantity);
 
@@ -186,6 +203,14 @@ export default function Sales() {
               <input type="checkbox" className="h-4.5 w-4.5 accent-forest" checked={combine} onChange={() => setCombine(!combine)} />
               Combine sizes
             </label>
+            {cats.length > 1 && (
+              <select aria-label="Category" value={cat} onChange={(e) => setCat(e.target.value)} className="h-9 rounded border border-line bg-paper px-2">
+                <option value="all">All categories</option>
+                {cats.map((c) => (
+                  <option key={c}>{c}</option>
+                ))}
+              </select>
+            )}
             <label className="flex items-center gap-2">
               Sort by
               <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} className="h-9 rounded border border-line bg-paper px-2">
@@ -204,8 +229,9 @@ export default function Sales() {
             {!includeTest && " Tick “Include test orders” to see test orders."}
           </p>
         ) : (
+          <>
           <RankedBars
-            rows={rows.map((r) => ({
+            rows={(showAll ? rows : rows.slice(0, TOP)).map((r) => ({
               key: r.key,
               name: r.name,
               detail: r.detail,
@@ -214,6 +240,12 @@ export default function Sales() {
               aside: sortBy === "quantity" ? formatPence(r.revenue_pence) : `${r.quantity} sold`,
             }))}
           />
+          {rows.length > TOP && (
+            <button onClick={() => setShowAll(!showAll)} className="self-start text-sm font-semibold text-forest underline underline-offset-2">
+              {showAll ? `Show top ${TOP} only` : `Show all ${rows.length}`}
+            </button>
+          )}
+          </>
         )}
       </Panel>
 

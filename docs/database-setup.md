@@ -79,6 +79,7 @@ Run them in date order. Each one is all-or-nothing.
 | `20261102000012_sales_stats.sql` | Sales page in the admin site (top drinks by day, week or month) | Done |
 | `20261102000013_out_of_stock_items.sql` | Reporting a drink out of stock switches it off on the menu, and the order can be finished without it | Done |
 | `20261103000014_review_fixes.sql` | Fixes from the full review: correct Sales takings and refunds, refunded orders can't be reopened, out-of-stock drinks can't be ticked, test orders limited to 20 a minute | Done |
+| `20261104000015_review_fixes_2.sql` | Second review: managers can close an order without serving it, staff can undo an out-of-stock mark, whole-category stock switch and price change, only orders from the last 12 hours can be reopened, safety fixes | Not yet |
 
 ## Menu updates
 Whole-menu changes are data files in `supabase/data/`, run once in the SQL Editor the same way.

@@ -14,14 +14,22 @@ const TEST_METHODS = [
 export default function ConfirmScreen({
   table,
   drinks,
+  lines,
   totalPence,
+  blocked,
+  onBasket,
   onChangeTable,
   onPlaceTestOrder,
   previewPhone = false,
 }: {
   table: string;
   drinks: number;
+  // "2 × Brains SA (Pint)" for each drink, so people can check before paying.
+  lines: string[];
   totalPence: number;
+  // Why the order can't go through right now (paused, closed, a drink sold out), or null.
+  blocked: string | null;
+  onBasket: () => void;
   onChangeTable: () => void;
   onPlaceTestOrder: (() => Promise<string | null>) | null;
   // A /?preview phone: if test orders are off, say how to switch them on.
@@ -45,6 +53,19 @@ export default function ConfirmScreen({
           {drinks} drink{drinks === 1 ? "" : "s"} · {formatPence(totalPence)}
         </p>
       </div>
+      {lines.length > 0 && (
+        <details className="rounded border border-line bg-paper px-4 py-3">
+          <summary className="cursor-pointer font-semibold text-forest">Your drinks ({drinks})</summary>
+          <ul className="mt-2 flex flex-col gap-1 text-sm text-ink">
+            {lines.map((l, i) => (
+              <li key={i}>{l}</li>
+            ))}
+          </ul>
+          <button onClick={onBasket} className="mt-2 text-sm font-semibold text-gold-ink underline underline-offset-2">
+            Change drinks
+          </button>
+        </details>
+      )}
       <p className="-mt-1 text-center text-sm text-muted">
         Please check this matches the number on your table stand. Orders sent to an empty table can't usually be refunded.{" "}
         <a href="/refunds" target="_blank" rel="noopener" className="font-semibold text-gold-ink underline underline-offset-2">
@@ -52,7 +73,14 @@ export default function ConfirmScreen({
         </a>
       </p>
 
-      {onPlaceTestOrder ? (
+      {blocked ? (
+        <div role="alert" className="flex flex-col items-start gap-3 rounded-md border border-alert bg-[#fbede7] p-4.5 text-alert">
+          <p className="m-0 font-semibold">{blocked}</p>
+          <button onClick={onBasket} className="min-h-12 rounded border border-forest bg-forest px-5 font-semibold text-ivory">
+            Back to basket
+          </button>
+        </div>
+      ) : onPlaceTestOrder ? (
         <div className="flex flex-col gap-3 rounded-md border-2 border-dashed border-gold bg-paper p-4.5">
           <p className="font-caps text-[0.72rem] tracking-[0.2em] text-gold-ink uppercase">Test mode · no money is taken</p>
           <p className="text-muted">

@@ -181,7 +181,9 @@ export function Drawer({
 type Toast = { id: number; message: string; undo?: () => void; error?: boolean };
 const ToastContext = createContext<(message: string, opts?: { undo?: () => void; error?: boolean }) => void>(() => {});
 
-export function ToastProvider({ children }: { children: ReactNode }) {
+// placement "bottom" (bar screen) keeps messages clear of the NEW ORDER banner
+// at the top, and above the order's bottom bar.
+export function ToastProvider({ children, placement = "top" }: { children: ReactNode; placement?: "top" | "bottom" }) {
   const [toast, setToast] = useState<Toast | null>(null);
   const timer = useRef<number | undefined>(undefined);
   const show = useCallback((message: string, opts?: { undo?: () => void; error?: boolean }) => {
@@ -195,7 +197,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {toast && (
         <div
           role="status"
-          className={`fixed top-[calc(1rem+env(safe-area-inset-top,0px))] left-1/2 z-60 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-3.5 rounded px-4 py-3 text-sm text-ivory shadow-xl ${
+          className={`fixed ${
+            placement === "bottom" ? "bottom-[calc(11rem+env(safe-area-inset-bottom,0px))]" : "top-[calc(1rem+env(safe-area-inset-top,0px))]"
+          } left-1/2 z-60 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-3.5 rounded px-4 py-3 text-sm text-ivory shadow-xl ${
             toast.error ? "bg-alert" : "bg-forest"
           }`}
         >

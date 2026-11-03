@@ -105,6 +105,16 @@ architecture changes, and never ask for secrets in chat.
   time (so takings − refunds is net); drinks/top drinks/extras leave out refunded-in-full
   orders and out-of-stock lines. "Include test orders" defaults on until
   card payments go live; switch the default off then.
+- Drinks page: pinned search/filter bar (accent-insensitive, word-start, also matches the category);
+  per category "All off / All on" (`admin_set_category_available`) and "Change a price" for one size
+  across the category (`admin_set_category_size_price`), both migration 015; Delete only in Archived;
+  "Mixer for spirits" tag. Drink editor: hidden categories last and a warning when saving into one; new
+  drinks pre-tick the option lists most drinks in that category have; phone Back and closing the tab
+  ask before discarding changes ("Discard changes / Keep editing", no `window.confirm`).
+- Overview flags only hidden categories that still have drinks; Categories tucks old empty hidden ones
+  away; category reorders save one after another. Sales shows the top 20 (Show all) with a category
+  filter (matched by drink name). Pause/resume has Undo. Extras: Undo for Remove and the
+  "must choose one" switch, warning when a required list has nothing in stock.
 - Multi-row saves go through `admin_save_drink`, `admin_reorder_categories` and
   `admin_save_opening_hours` (migration 002). Single-field changes use direct updates.
 - Local end-to-end testing: PostgREST (official release binary) on the local test database
@@ -129,7 +139,21 @@ architecture changes, and never ask for secrets in chat.
   out after 12 s. If the open order is finished/refunded on another iPad, a toast says so.
   The bar admin's 5-minute lock pauses while a drink form or refund is open. The chime
   resumes audio after the iPad sleeps (`alerts.ts`).
-- NEW marker: not opened on this iPad (localStorage) and still `fulfilment_status = new`.
+- NEW marker: not opened on this iPad (localStorage) and still `fulfilment_status = new`. Unopened
+  orders show as "(n)" in the tab title; the chime repeats every minute while one is over a minute old;
+  a red "Sound is off" bar shows until sound is enabled.
+- Cards (`Board.tsx`) show at most 4 drink lines ("+ n more drinks"), options as bold "+ Coca-Cola"
+  lines ("No mixer" hidden), test orders striped grey (`isTest`: `payment_provider = 'test'`), and a
+  "↓ n more orders below" button. Orders paid before today's 6am go in "From earlier"; waits over an
+  hour read "1 h 20 min" / "20 h". Search shows a "Showing n of m" bar and clears when an order opens.
+- Confirm steps: out of stock and table moves have Undo (`staff_undo_out_of_stock`, migration 015,
+  leaves the drink off on the menu); table moves, Reopen and Untick all ask once more. ORDER FULFILLED
+  waits for tick saves still in flight. Bar toasts sit at the bottom (`ToastProvider placement`),
+  the NEW ORDER banner on top.
+- Managers close stuck orders with "Close without serving" (`staff_close_order(id, reason)`, migration
+  015: fulfilment `cancelled`, clears the problem) from the bar admin's "Needs a manager" list (problems
+  plus orders from earlier) and the admin Overview problems panel. Only orders delivered in the last
+  12 hours can be reopened (`order_too_old`).
 - The admin section signs a manager in on a separate, unsaved client
   (`createElevatedClient`) so the bar session stays put; locks after 5 minutes. Bar password
   changes use the bar session's own `auth.updateUser`, with `signOut({scope: "others"})`.
@@ -158,11 +182,20 @@ architecture changes, and never ask for secrets in chat.
 - `CustomerRoot` shows the "being set up" page unless `venue_settings.customer_menu_live`
   (migration 004, switch in Venue settings) or this phone has `/?preview` (localStorage
   `rs-preview`; `/?preview=off` clears it). `CustomerApp` is lazy-loaded.
+- Screens live in browser history (`location.state.screen`, plus `sheet` while a drink pop-up is
+  open), so the phone's Back button steps back and closes the pop-up; a refresh on table/confirm goes
+  back to the basket. "Order more drinks" on the order page opens the menu.
+- Checkout: Continue stays tappable and scrolls to / highlights what's missing (table, age box); the
+  confirm screen lists the drinks and, if ordering is paused/closed or a drink sold out, says so with
+  "Back to basket" instead of the pay buttons. Menu loading gives up after 15 s with a weak-signal hint.
+- Product sheet: required lists first; a gin's mixer list starts No mixer, then tonics.
 - Menu screen: the sticky page header holds `MenuToolbar` (search box + category buttons), so
   both stay visible while scrolling. Search filters as you type across all categories,
   ignoring case and accents; each word must match the start of a word; name/category matches
   win, descriptions are searched only when nothing matches by name; a few aliases (`ALSO`:
-  coke→Coca-Cola, whisky/whiskey, af, bubbly, kids…). Tapping a category clears the search.
+  coke→Coca-Cola, whisky/whiskey, af, bubbly, kids, g&t, jd, j20, ale/bitter, shandy…), filler words
+  ignored (a, of, pint, glass…), apostrophes ignored (gordons), and if nothing matches every word,
+  drinks matching any word are shown with a note. Tapping a category clears the search.
 - Menu from `useCustomerMenu` (public reads, Realtime on drinks/variants/options/settings,
   60-second poll). Basket in localStorage holds ids only; prices always come from
   `src/lib/pricing.ts` `priceLine`, which the payment server code must reuse.
@@ -207,6 +240,12 @@ architecture changes, and never ask for secrets in chat.
   screen (with the "empty tables can't usually be refunded" line) and the tracking page.
 - `/order/:token` tracking polls `get_order_tracking` every 8 seconds (anon can't
   subscribe to orders).
+
+## Security headers
+- `netlify.toml` sets HSTS, X-Frame-Options etc. The Content Security Policy is a `<meta>` tag added at
+  build time by `vite.config.ts` (scripts from the site only; connections only to the site and the
+  Supabase project from `VITE_SUPABASE_URL`; Google Fonts). It skips the dev server and `/demo`. A
+  payment provider's scripts/frames will need adding to it.
 
 ## Design
 Prototypes in `design/` are the reference for look and behaviour. Brand: forest

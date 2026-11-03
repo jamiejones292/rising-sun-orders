@@ -4,7 +4,7 @@ import { friendlyError } from "../../lib/errors";
 import { formatPence } from "../../lib/money";
 import type { BarOrder, VenueTable } from "../../lib/types";
 import { useToast } from "../../components/ui";
-import { drinkCount, extrasText, hm, tickedCount, toPour, waitText } from "./barUtils";
+import { drinkCount, extrasText, hm, isTest, optionLines, plural, tickedCount, toPour, waitText } from "./barUtils";
 
 const CHECK = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3.2} strokeLinecap="round" strokeLinejoin="round" className="h-7.5 w-7.5" aria-hidden="true">
@@ -19,12 +19,14 @@ export default function OrderDetail({
   order,
   onBack,
   onTick,
+  waitForTicks,
   onFulfilled,
   onChanged,
 }: {
   order: BarOrder;
   onBack: () => void;
   onTick: (itemId: string, ticked: boolean) => Promise<boolean>;
+  waitForTicks: () => Promise<unknown>;
   onFulfilled: (order: BarOrder) => void;
   onChanged: () => void;
 }) {
@@ -34,6 +36,15 @@ export default function OrderDetail({
   const [outPick, setOutPick] = useState<string[] | null>(null);
   const [tables, setTables] = useState<VenueTable[]>([]);
   const [busy, setBusy] = useState(false);
+  // Table picked, waiting for "Move" to be confirmed.
+  const [moveTarget, setMoveTarget] = useState<VenueTable | null>(null);
+  // "Untick all" asks once more; resets after a few seconds.
+  const [confirmUntick, setConfirmUntick] = useState(false);
+  useEffect(() => {
+    if (!confirmUntick) return;
+    const id = window.setTimeout(() => setConfirmUntick(false), 5000);
+    return () => window.clearTimeout(id);
+  }, [confirmUntick]);
   const backRef = useRef<HTMLButtonElement>(null);
   const fulfilRef = useRef<HTMLButtonElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
@@ -43,7 +54,6 @@ export default function OrderDetail({
   // How many drinks still to pour are hidden below the bottom bar, for the
   // "more to pour below" button. Rechecked on scroll, resize and every change.
   const [below, setBelow] = useState(0);
-  const [barHeight, setBarHeight] = useState(0);
   const hiddenBelow = () => {
     const limit = window.innerHeight - (barRef.current?.offsetHeight ?? 0);
     return toPour(order)
@@ -53,7 +63,6 @@ export default function OrderDetail({
   };
   useEffect(() => {
     const check = () => {
-      setBarHeight(barRef.current?.offsetHeight ?? 0);
       setBelow(hiddenBelow().length);
     };
     check();
@@ -124,6 +133,7 @@ export default function OrderDetail({
 
   async function fulfil() {
     setBusy(true);
+    await waitForTicks(); // the last tick must be saved before the order is finished
     const { error } = await supabase.rpc("staff_fulfil_order", { p_order_id: order.id });
     setBusy(false);
     if (error) {
@@ -157,7 +167,23 @@ export default function OrderDetail({
     setPanel("none");
     setOutPick(null);
     onChanged();
-    toast(`Marked out of stock and switched off on the menu. A manager will sort the refund (Table ${order.table_label}).`);
+    toast(`Marked out of stock and switched off on the menu (Table ${order.table_label}). A manager sorts the refund.`, {
+      undo: () => void undoOutOfStock(itemIds),
+    });
+  }
+
+  // Undo a mistaken out-of-stock mark (the drink stays off on the menu; Stock
+  // or a manager switches it back on).
+  async function undoOutOfStock(itemIds: string[]) {
+    for (const id of itemIds) {
+      const { error } = await supabase.rpc("staff_undo_out_of_stock", { p_item_id: id });
+      if (error) {
+        onChanged();
+        return toast(friendlyError(error), { error: true });
+      }
+    }
+    onChanged();
+    toast("Out of stock mark undone. The drink is still switched off on the menu: switch it back on in Stock if it was a mistake.");
   }
 
   async function report(reason: string) {
@@ -169,12 +195,14 @@ export default function OrderDetail({
     toast(`Reported for a manager: ${reason} (Table ${order.table_label})`);
   }
 
-  async function moveTo(table: VenueTable) {
+  async function moveTo(table: VenueTable, undo = true) {
+    const from = tables.find((tb) => tb.label === order.table_label);
     const { error } = await supabase.rpc("staff_change_table", { p_order_id: order.id, p_table_id: table.id });
     if (error) return toast(friendlyError(error), { error: true });
     setPanel("none");
+    setMoveTarget(null);
     onChanged();
-    toast(`Order #${order.order_number} moved to Table ${table.label}`);
+    toast(`Order #${order.order_number} moved to Table ${table.label}`, undo && from ? { undo: () => void moveTo(from, false) } : undefined);
   }
 
   return (
@@ -202,9 +230,9 @@ export default function OrderDetail({
 
       <div className="gutter mx-auto flex w-full max-w-[900px] flex-1 flex-col gap-2.5 pt-3 pb-48">
         {/* Notices kept to one slim row, so the drinks get the screen. */}
-        {(order.payment_method_label?.startsWith("TEST") || alcohol || order.refunded_pence > 0) && (
+        {(isTest(order) || alcohol || order.refunded_pence > 0) && (
           <div className="flex flex-wrap gap-2 text-sm font-bold">
-            {order.payment_method_label?.startsWith("TEST") && (
+            {isTest(order) && (
               <span className="rounded-md bg-ink px-3 py-1.5 tracking-wider text-white">TEST ORDER · NO PAYMENT TAKEN</span>
             )}
             {alcohol && <span className="rounded-md bg-bar-amber-soft px-3 py-1.5 text-[#7a4b00]">Alcohol: check ID if they look under 25</span>}
@@ -234,6 +262,11 @@ export default function OrderDetail({
                       OUT OF STOCK · DON'T POUR
                     </span>
                     <span className="mt-0.5 block text-muted">{extrasText(i)}</span>
+                    {optionLines(i).map((x, k) => (
+                      <span key={k} className="block text-lg font-bold text-muted line-through">
+                        + {x}
+                      </span>
+                    ))}
                   </span>
                 </div>
               </li>
@@ -259,6 +292,11 @@ export default function OrderDetail({
                     </span>
                   )}
                   <span className={`mt-0.5 block ${i.ticked ? "text-[#d7f0df]" : "text-muted"}`}>{extrasText(i)}</span>
+                  {optionLines(i).map((x, k) => (
+                    <span key={k} className={`block text-xl font-extrabold ${i.ticked ? "text-white" : "text-forest"}`}>
+                      + {x}
+                    </span>
+                  ))}
                 </span>
               </button>
             </li>
@@ -267,7 +305,7 @@ export default function OrderDetail({
         </ul>
         <div className="flex justify-between border-t border-line px-1 py-1.5 text-muted tabular-nums">
           <span>
-            {drinkCount(order)} drinks in {order.order_items.length} line{order.order_items.length === 1 ? "" : "s"}
+            {plural(drinkCount(order), "drink")} in {plural(order.order_items.length, "line")}
           </span>
           <span>
             Total paid <b className="text-forest">{formatPence(order.total_pence)}</b>
@@ -331,7 +369,22 @@ export default function OrderDetail({
           </Sheet>
         )}
         {panel === "table" && (
-          <Sheet title="Wrong table?" onClose={() => setPanel("none")}>
+          <Sheet title="Wrong table?" onClose={() => (setMoveTarget(null), setPanel("none"))}>
+            {moveTarget ? (
+              <div className="flex flex-col gap-3 rounded-[10px] border-2 border-line bg-white p-3.5">
+                <span className="text-xl font-semibold text-forest">
+                  Move order #{order.order_number} from Table {order.table_label} to <b>Table {moveTarget.label}</b>?
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={() => void moveTo(moveTarget)} className="min-h-12 rounded-md bg-forest px-5 text-lg font-extrabold text-ivory">
+                    Move to Table {moveTarget.label}
+                  </button>
+                  <button onClick={() => setMoveTarget(null)} className="min-h-12 rounded-md border-[1.5px] border-line px-4 font-bold">
+                    Pick another table
+                  </button>
+                </div>
+              </div>
+            ) : (
             <div className="flex flex-col gap-2.5 rounded-[10px] border-2 border-line bg-white p-3.5">
               <span className="font-semibold text-forest">Move this order to which table?</span>
               <div className="grid grid-cols-[repeat(auto-fill,minmax(64px,1fr))] gap-2">
@@ -339,7 +392,7 @@ export default function OrderDetail({
                   <button
                     key={tb.id}
                     disabled={tb.label === order.table_label}
-                    onClick={() => void moveTo(tb)}
+                    onClick={() => setMoveTarget(tb)}
                     className="min-h-12 rounded-md border border-line bg-paper text-lg font-bold text-forest tabular-nums disabled:bg-forest disabled:text-ivory"
                   >
                     {tb.label}
@@ -347,22 +400,22 @@ export default function OrderDetail({
                 ))}
               </div>
             </div>
+            )}
           </Sheet>
         )}
       </div>
 
-      {below > 0 && (
-        <button
-          onClick={showBelow}
-          style={{ bottom: barHeight + 12 }}
-          className="fixed left-1/2 z-8 flex min-h-12 -translate-x-1/2 items-center gap-2 rounded-full bg-gold-bright px-5 text-lg font-extrabold text-white shadow-[0_8px_22px_rgba(0,0,0,.3)]"
-        >
-          ↓ {below} more to pour below
-        </button>
-      )}
-
       <div ref={barRef} className="gutter fixed inset-x-0 bottom-0 z-7 border-t-2 border-line bg-ivory pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
         <div className="mx-auto flex max-w-[900px] flex-col gap-2">
+          {/* Part of the bottom bar, so it never covers a drink's tick box. */}
+          {below > 0 && (
+            <button
+              onClick={showBelow}
+              className="flex min-h-12 items-center justify-center gap-2 self-center rounded-full bg-gold-bright px-5 text-lg font-extrabold text-white shadow-[0_6px_16px_rgba(0,0,0,.2)]"
+            >
+              ↓ {below} more to pour below
+            </button>
+          )}
           <div className="flex items-center gap-3 font-extrabold text-forest">
             <span className="h-3 flex-1 overflow-hidden rounded-md bg-vellum">
               <i className="block h-full rounded-md bg-bar-ok" style={{ width: `${n ? (t / n) * 100 : 0}%` }} />
@@ -383,14 +436,17 @@ export default function OrderDetail({
               {busy ? "SAVING…" : "ORDER FULFILLED"}
             </button>
           ) : null}
-          <div className="flex flex-wrap justify-center gap-x-4.5 gap-y-2 [&_button]:p-1.5 [&_button]:font-semibold [&_button]:text-muted [&_button]:underline [&_button]:underline-offset-3">
+          <div className="flex flex-wrap justify-center gap-x-4.5 gap-y-2 [&_button]:min-h-11 [&_button]:px-2 [&_button]:font-semibold [&_button]:text-muted [&_button]:underline [&_button]:underline-offset-3">
             {t > 0 && (
               <button
                 onClick={async () => {
+                  if (!confirmUntick) return setConfirmUntick(true);
+                  setConfirmUntick(false);
                   for (const i of order.order_items.filter((x) => x.ticked)) await onTick(i.id, false);
                 }}
+                className={confirmUntick ? "!text-bar-red" : ""}
               >
-                Untick all
+                {confirmUntick ? `Tap again to untick all ${t}` : "Untick all"}
               </button>
             )}
             <button onClick={() => setPanel(panel === "table" ? "none" : "table")}>{panel === "table" ? "Cancel table change" : "Wrong table? Change it"}</button>

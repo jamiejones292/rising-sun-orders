@@ -20,14 +20,15 @@ export default function OrderingCard({
   const paused = settings.ordering_paused;
   const today = todaysHours(hours);
 
-  async function toggle() {
+  async function setPaused(next: boolean, undo = true) {
     setBusy(true);
-    const { error } = await supabase.rpc("set_ordering_paused", { p_paused: !paused });
+    const { error } = await supabase.rpc("set_ordering_paused", { p_paused: next });
     setBusy(false);
     if (error) return toast(friendlyError(error), { error: true });
-    onChanged(!paused);
-    toast(paused ? "Online ordering resumed" : "Online ordering paused for every customer");
+    onChanged(next);
+    toast(next ? "Online ordering paused for every customer" : "Online ordering resumed", undo ? { undo: () => void setPaused(!next, false) } : undefined);
   }
+  const toggle = () => setPaused(!paused);
 
   return (
     <section

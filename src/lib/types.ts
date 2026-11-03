@@ -128,6 +128,7 @@ export type BarOrder = {
   table_label: string;
   total_pence: number;
   payment_method_label: string | null;
+  payment_provider?: string | null;
   paid_at: string;
   fulfilment_status: FulfilmentStatus;
   delivered_at: string | null;

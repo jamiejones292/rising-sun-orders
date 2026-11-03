@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { supabase } from "../../lib/supabase";
 import { useMenuData } from "../../lib/adminData";
 import { friendlyError } from "../../lib/errors";
@@ -12,19 +12,43 @@ export default function Categories() {
   const toast = useToast();
   const [newName, setNewName] = useState("");
   const cats = data?.categories ?? [];
+  // Hidden categories with no drinks (left from an old menu) are tucked away.
+  const [showOld, setShowOld] = useState(false);
+  const liveCount = (id: string) => data?.drinks.filter((d) => d.category_id === id && !d.archived_at).length ?? 0;
+  const isOld = (c: Category) => !c.visible && !isMixerOnlyCategory(c) && liveCount(c.id) === 0;
+  const old = cats.filter(isOld);
+  const shown = showOld ? cats : cats.filter((c) => !isOld(c));
 
   const setCats = (next: Category[]) => setData((prev) => (prev ? { ...prev, categories: next } : prev));
 
-  async function move(index: number, by: -1 | 1) {
-    const next = [...cats];
-    const [item] = next.splice(index, 1);
-    next.splice(index + by, 0, item!);
-    setCats(next);
-    const { error: err } = await supabase.rpc("admin_reorder_categories", { p_ids: next.map((c) => c.id) });
-    if (err) {
-      toast(friendlyError(err), { error: true });
-      await reload();
+  // Saves run one after another, always with the latest order, so quick taps
+  // can't arrive out of order and leave the menu in an older order.
+  const wanted = useRef<string[] | null>(null);
+  const saving = useRef(false);
+  async function saveOrder() {
+    if (saving.current) return;
+    saving.current = true;
+    while (wanted.current) {
+      const ids = wanted.current;
+      wanted.current = null;
+      const { error: err } = await supabase.rpc("admin_reorder_categories", { p_ids: ids });
+      if (err) {
+        wanted.current = null;
+        toast(friendlyError(err), { error: true });
+        await reload();
+      }
     }
+    saving.current = false;
+  }
+
+  function move(index: number, by: -1 | 1) {
+    const list = [...shown];
+    const [item] = list.splice(index, 1);
+    list.splice(index + by, 0, item!);
+    const next = showOld ? list : [...list, ...old];
+    setCats(next);
+    wanted.current = next.map((c) => c.id);
+    void saveOrder();
   }
 
   // "Mixers" is kept for the hidden mixer-only category, which the drink form
@@ -83,7 +107,7 @@ export default function Categories() {
       {error && <p className="text-alert">Couldn't load categories: {error}</p>}
       <Panel>
         <ul className="flex flex-col">
-          {cats.map((c, i) => (
+          {shown.map((c, i) => (
             <li key={c.id} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 border-b border-line py-2.5">
               <span className="flex flex-col gap-0.5">
                 <button
@@ -96,7 +120,7 @@ export default function Categories() {
                 </button>
                 <button
                   aria-label={`Move ${c.name} down`}
-                  disabled={i === cats.length - 1}
+                  disabled={i === shown.length - 1}
                   onClick={() => void move(i, 1)}
                   className="h-6 w-8 rounded-sm border border-[#d6c6a8] bg-paper text-xs text-forest disabled:opacity-30"
                 >
@@ -116,7 +140,7 @@ export default function Categories() {
                   className={`${inputClass} max-w-[340px]`}
                 />
                 <div className="mt-1 text-xs text-muted">
-                  {data?.drinks.filter((d) => d.category_id === c.id && !d.archived_at).length ?? 0} drinks
+                  {liveCount(c.id)} drink{liveCount(c.id) === 1 ? "" : "s"}
                 </div>
               </div>
               {isMixerOnlyCategory(c) ? (
@@ -130,6 +154,11 @@ export default function Categories() {
             </li>
           ))}
         </ul>
+        {old.length > 0 && (
+          <button onClick={() => setShowOld(!showOld)} className="self-start text-sm font-semibold text-forest underline underline-offset-2">
+            {showOld ? "Hide" : "Show"} old empty categories ({old.length})
+          </button>
+        )}
         <form onSubmit={add} className="mt-1.5 flex flex-wrap items-center gap-2.5">
           <input
             id="new-category"

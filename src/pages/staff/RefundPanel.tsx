@@ -133,7 +133,11 @@ export default function RefundPanel({
     setBusy(true);
     const { error: err } = await client.rpc("staff_refund_order", { p_order_id: order.id, p_amount_pence: amount, p_reason: text });
     // The refund deals with the reported problem, so clear the flag too.
-    if (!err && order.problem_reason) await client.rpc("staff_clear_problem", { p_order_id: order.id });
+    // Only if it's still the same problem: a new one reported meanwhile stays.
+    if (!err && order.problem_reason) {
+      const { data: now } = await client.from("orders").select("problem_reason").eq("id", order.id).maybeSingle();
+      if (now?.problem_reason === order.problem_reason) await client.rpc("staff_clear_problem", { p_order_id: order.id });
+    }
     setBusy(false);
     if (err) return setError(withDetail(err));
     const full = amount === left;

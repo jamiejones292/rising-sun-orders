@@ -227,8 +227,6 @@ cat("Prosecco & Champagne", [
 
 cat("Soft Drinks", [
     d("Lemonade", SOFT(260, 300), None, "Crisp, sparkling lemonade."),
-    d("Blueberry Mix", SOFT(260, 300), None, "Lemonade with a sweet blueberry syrup.",
-      flags=["Description guessed: what is Blueberry Mix? Tell me and I'll reword it."]),
     d("Pepsi", SOFT(260, 300), None, "Ice-cold Pepsi cola."),
     d("Pepsi Max", SOFT(260, 300), None, "Maximum taste, no sugar."),
     d("Soda & Lime", SOFT(200, 240), None, "Soda water with a splash of lime cordial."),

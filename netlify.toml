@@ -5,6 +5,9 @@
   command = "npm run build"
   publish = "dist"
   functions = "netlify/functions"
+  # Skip the build (and its deploy credits) when a push only changes notes,
+  # database files or design files, which the live site doesn't use.
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- . ':(exclude)docs' ':(exclude)supabase' ':(exclude)design' ':(exclude)*.md'"
 
 [build.environment]
   NODE_VERSION = "22"

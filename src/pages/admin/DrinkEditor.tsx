@@ -37,6 +37,8 @@ export const isMixersCategory = (name: string) => name.trim().toLowerCase() === 
 // The real mixer-only category is the hidden one; a visible category that
 // happens to be called "Mixers" is an ordinary category.
 export const isMixerOnlyCategory = (c: { name: string; visible: boolean }) => isMixersCategory(c.name) && !c.visible;
+// Categories whose drinks are spirits (they get "Add a mixer" ticked automatically).
+const SPIRIT_CATEGORY = /spirit|whisk|\bgin\b|vodka|\brum\b|tequila|liqueur|brandy|cognac/i;
 // Mixer choices are limited to 60 characters in the database; drink names to 80.
 const MIXER_LABEL_MAX = 60;
 const NEW_MIXERS = "__mixers__";
@@ -60,7 +62,7 @@ export default function DrinkEditor({
   // Every spirit offers a mixer (owner's decision): the mixer options to tick
   // when a drink is new in, or moved into, the Spirits category.
   const mixerFor = (catId: string) =>
-    data.categories.find((c) => c.id === catId)?.name.toLowerCase().includes("spirit")
+    SPIRIT_CATEGORY.test(data.categories.find((c) => c.id === catId)?.name ?? "")
       ? data.groups.find((g) => g.name.toLowerCase().includes("mixer"))?.id
       : undefined;
   // "Also offer as a mixer": this drink's choice in the spirits' mixer list,

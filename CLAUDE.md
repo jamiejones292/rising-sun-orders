@@ -197,7 +197,9 @@ architecture changes, and never ask for secrets in chat.
   both stay visible while scrolling. Search filters as you type across all categories,
   ignoring case and accents; each word must match the start of a word; name/category matches
   win, descriptions are searched only when nothing matches by name; a few aliases (`ALSO`:
-  coke→Coca-Cola, whisky/whiskey, af, bubbly, kids, g&t, jd, j20, ale/bitter, shandy…), filler words
+  coke→Coca-Cola, whisky/whiskey, af, bubbly, kids, g&t, jd, j20, ale/bitter, shandy; type words
+  beer, spirits, pop bring up every drink of that type; misspellings larger, guiness, prosseco…;
+  plurals match the singular, so "lagers"/"ales" work), filler words
   ignored (a, of, pint, glass…), apostrophes ignored (gordons), and if nothing matches every word,
   drinks matching any word are shown with a note. Tapping a category clears the search.
 - Menu from `useCustomerMenu` (public reads, Realtime on drinks/variants/options/settings,

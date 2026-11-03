@@ -25,6 +25,28 @@ const ALSO: Record<string, string[]> = {
   bitter: ["draught beer", "real ale"],
   shandy: ["lager", "lemonade"],
   vino: ["wine"],
+  // A word for a whole type of drink brings up every drink of that type.
+  beer: ["lager", "ale", "stout", "bitter", "ipa"],
+  spirit: ["whisky", "gin", "vodka", "rum", "tequila", "brandy", "liqueur", "cognac"],
+  pop: ["soft drink", "cans"],
+  fizzy: ["soft drink", "cans", "prosecco"],
+  // Common misspellings.
+  larger: ["lager"],
+  lagar: ["lager"],
+  guiness: ["guinness"],
+  guineas: ["guinness"],
+  prosseco: ["prosecco"],
+  proseco: ["prosecco"],
+  cyder: ["cider"],
+  whiskys: ["whisky"],
+  vodca: ["vodka"],
+};
+
+// The word typed, its singular ("ales" → "ale", "largers" → "larger") and
+// anything listed for either above.
+const forms = (w: string) => {
+  const base = w.length > 3 && w.endsWith("s") ? [w, w.slice(0, -1)] : [w];
+  return [...new Set(base.flatMap((b) => [b, ...(ALSO[b] ?? [])]))];
 };
 
 // Words that don't help find a drink ("a pint of lager" searches for "lager").
@@ -144,7 +166,7 @@ export default function MenuScreen({
   const catName = (d: MenuDrink) => menu.categories.find((c) => c.id === d.category_id)?.name ?? "";
   // Each word must match the start of a word, so "rose" finds Rosé but not Prosecco.
   const esc = (w: string) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const starts = words.map((w) => new RegExp(`(^|[^a-z0-9])(${[w, ...(ALSO[w] ?? [])].map(esc).join("|")})`));
+  const starts = words.map((w) => new RegExp(`(^|[^a-z0-9])(${forms(w).map(esc).join("|")})`));
   const all = (text: string) => starts.every((r) => r.test(plain(text)));
   const some = (text: string) => starts.some((r) => r.test(plain(text)));
   const onMenu = menu.drinks.filter((d) => d.category_visible && d.variants.length > 0);

@@ -17,12 +17,15 @@ export default function ConfirmScreen({
   totalPence,
   onChangeTable,
   onPlaceTestOrder,
+  previewPhone = false,
 }: {
   table: string;
   drinks: number;
   totalPence: number;
   onChangeTable: () => void;
   onPlaceTestOrder: (() => Promise<string | null>) | null;
+  // A /?preview phone: if test orders are off, say how to switch them on.
+  previewPhone?: boolean;
 }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -82,6 +85,12 @@ export default function ConfirmScreen({
             You'll soon be able to pay here with Apple Pay, Google Pay or a card. For now, please order at the bar. Your basket is saved on
             this phone.
           </p>
+          {previewPhone && (
+            <p className="rounded border border-dashed border-gold p-3 text-sm text-gold-ink">
+              Preview phone: test orders are switched off (they turn off by themselves after 2 hours). Switch them on in the admin
+              site under Venue settings, Test orders, then come back to this screen.
+            </p>
+          )}
         </div>
       )}
       <button onClick={onChangeTable} className="self-center py-1.5 font-semibold text-gold-ink underline underline-offset-3">

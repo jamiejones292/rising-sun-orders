@@ -49,7 +49,12 @@ architecture changes, and never ask for secrets in chat.
 - Still open: tracking stages (proposed Received → Preparing → Delivered), policy for
   orders missing from the iPad, minimum order.
 - Every spirit offers "Add a mixer" (migration 007 attached it to existing spirits; the drink
-  editor ticks it for drinks new in or moved into a category named like "Spirits").
+  editor ticks it for drinks new in or moved into a spirit category: `SPIRIT_CATEGORY` matches
+  Spirits, Whisky, Gin, Vodka, Rum, Tequila, Liqueurs, Brandy, Cognac).
+- Menu (Nov 2026): `supabase/data/menu/menu_data.py` is the owner's drinks list (no ABVs, by
+  the owner's choice; wine dietary labels from the owner's list in the description);
+  `gen_sql.py` writes `supabase/data/2026-11-new-menu.sql`, run once by the owner (archives
+  the old drinks, 19 categories, 122 drinks, mixer list with draught mixers at 60p).
 - Mixers follow their drink (migration 009): `modifier_options.linked_drink_id`; a trigger on
   drinks copies `available`/archived to linked options. Linked by exact name when the migration
   ran. Unlinked options have their own switch (`set_option_available`, same rule as drinks),
@@ -167,7 +172,8 @@ architecture changes, and never ask for secrets in chat.
   most 20 test orders a minute (`limit_test_orders` trigger, migration 014).
   The confirm screen's test panel shows stand-in "Pay £x with Apple Pay / Google Pay / card"
   buttons (text only, no brand logos, marked TEST) that all place the same test order; the
-  real provider's wallet buttons replace them.
+  real provider's wallet buttons replace them. On a preview phone with test orders off, the
+  holding panel says so and where to switch them on.
 - Recent orders / "Same again" (`history.ts`, `RecentOrders.tsx`): last 10 orders for 7 days
   in localStorage `rs-orders-v1` (ids only, no accounts). Only shown once the server says
   `payment_status = 'paid'` (set by the order page, re-checked via `get_order_tracking` each
@@ -205,7 +211,9 @@ Garamond (display), Cinzel (small caps labels), Figtree (UI text).
 ## Hosting
 Domain `drinksorder.app` (Cloudflare DNS, records set to DNS only) is served by Netlify
 project `risingsunpub`, which the owner is linking to this repository (branch
-`setup/project-foundation`), so every push deploys live. The repository is public (owner's decision) because
+`setup/project-foundation`), so every push deploys live. Each production deploy costs 15
+of the free plan's 300 monthly credits: batch changes on the working branch and push live only
+when the owner says. `netlify.toml` `ignore` skips builds for docs/supabase/design/*.md-only pushes. The repository is public (owner's decision) because
 Netlify's free plan refused builds from more than one Git contributor on a private repo. Keep
 it free of secrets: keys live only in Netlify environment variables. Commits are authored as
 the owner (`jamiejones292`, `342932116+jamiejones292@users.noreply.github.com`). The old clickable demo is kept as

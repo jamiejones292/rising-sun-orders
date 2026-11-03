@@ -267,6 +267,7 @@ export default function CustomerApp({ preview, previewPhone }: { preview: boolea
           totalPence={total}
           onChangeTable={() => go("table")}
           onPlaceTestOrder={testMode ? placeTestOrder : null}
+          previewPhone={previewPhone}
         />
       )}
 

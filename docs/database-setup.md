@@ -80,6 +80,13 @@ Run them in date order. Each one is all-or-nothing.
 | `20261102000013_out_of_stock_items.sql` | Reporting a drink out of stock switches it off on the menu, and the order can be finished without it | Done |
 | `20261103000014_review_fixes.sql` | Fixes from the full review: correct Sales takings and refunds, refunded orders can't be reopened, out-of-stock drinks can't be ticked, test orders limited to 20 a minute | Done |
 
+## Menu updates
+Whole-menu changes are data files in `supabase/data/`, run once in the SQL Editor the same way.
+
+| File | What it does | Run? |
+|---|---|---|
+| `2026-11-new-menu.sql` | November 2026 menu: archives the old drinks and adds 122 new ones in 19 categories, with the spirits' mixer list | Not yet |
+
 ## Trying the bar screen with a test order
 Real orders arrive once payments are set up. To see how the bar screen behaves before then,
 run this in a new SQL Editor query. It creates a pretend paid order for Table 12:

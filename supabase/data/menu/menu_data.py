@@ -101,8 +101,7 @@ cat("Whisky", [
     d("Dalwhinnie Winter's Gold", SPIRIT, 43.0, "Highland single malt with honey, vanilla and a gentle spiced sweetness. Lovely chilled."),
     d("Ardbeg Ten", SPIRIT, 46.0, "Bold, smoky Islay single malt: peaty, with sweet citrus and chocolate notes."),
     d("Haig Club Clubman", SPIRIT, 40.0, "Light, smooth single grain Scotch with sweet vanilla and toffee. Great with a mixer."),
-    d("Haig Club Clubman Bourbon Cask", SPIRIT, 40.0, "Single grain Scotch from bourbon casks: soft vanilla and caramel.",
-      flags=["Product not recognised: please check the name and ABV on the bottle."]),
+    d("Haig Club Clubman Single Grain Scotch Whisky", SPIRIT, 40.0, "Light, smooth single grain Scotch matured in American oak: sweet vanilla, toffee and a hint of spice."),
     d("Laphroaig Oak Select", SPIRIT, 40.0, "Islay single malt with Laphroaig's peaty smoke softened by sweet oak and vanilla."),
 ], groups=["Add a mixer"] + WHISKY_GROUP, note="Single £3.00 · Double £5.60")
 
@@ -117,8 +116,7 @@ cat("Gin", [
     d("Gordon's Sicilian Lemon Gin", SPIRIT, 37.5, "Gordon's gin with zesty Sicilian lemons. Bright and refreshing."),
     d("Gordon's Mulled Gin", SPIRIT, None, "Seasonal Gordon's with warming mulled spices and dark fruit.",
       flags=["ABV unknown: please add it from the bottle."]),
-    d("Gordon's Berry Gin", SPIRIT, None, "Gordon's gin with juicy mixed berries.",
-      flags=["Product and ABV: please check the exact name and ABV on the bottle."]),
+    d("Gordon's Shimmer Berry Gin", SPIRIT, None, "Gordon's with juicy berry flavours and a shimmering swirl in the glass. Lovely with lemonade."),
     d("Bombay Sapphire London Dry Gin", SPIRIT, 40.0, "Light, aromatic London dry gin made with 10 vapour-infused botanicals."),
 ], groups=["Add a mixer"])
 
@@ -153,10 +151,8 @@ cat("Liqueurs", [
 
 cat("Brandy, Port & Sherry", [
     d("Courvoisier VS Cognac", SPIRIT, 40.0, "Smooth cognac with notes of fresh fruit, spring flowers and oak.", groups=["Add a mixer"]),
-    d("Harveys Bristol Cream Sherry", SMALL_LARGE, 17.5, "Rich, smooth cream sherry with dried fruit and nutty notes.", [S],
-      ["Price: small and large glasses at the single and double prices (£3.00 / £5.60). Tell me if they should differ."]),
-    d("Taylor's Late Bottled Vintage Port 2018", SMALL_LARGE, 20.0, "Rich, full-bodied port with blackberry, cherry and chocolate notes.", [S],
-      ["Price: small and large glasses at the single and double prices (£3.00 / £5.60). Tell me if they should differ."]),
+    d("Harveys Bristol Cream Sherry", SMALL_LARGE, 17.5, "Rich, smooth cream sherry with dried fruit and nutty notes.", [S]),
+    d("Taylor's Late Bottled Vintage Port 2018", SMALL_LARGE, 20.0, "Rich, full-bodied port with blackberry, cherry and chocolate notes.", [S]),
 ])
 
 cat("House Wine", [
@@ -239,7 +235,7 @@ cat("Cans, Juices & Mixers", [
     d("Water", [("500ml bottle", 120)], None, "Still bottled water.", no_ice=True),
     d("Slimline Britvic Tonic", [("200ml bottle", 240)], None, "Low-calorie Indian tonic water.", no_ice=True),
     d("Fever-Tree Low Calorie Tonic", [("200ml bottle", 280)], None, "Fever-Tree's refreshingly light Indian tonic, with fewer calories.",
-      no_ice=True, flags=["Name: your list says 'Low Calorie Fever-Tree'. I've called it 'Fever-Tree Low Calorie Tonic'."]),
+      no_ice=True),
     d("Britvic Orange", [("200ml bottle", 240)], None, "Orange juice drink. A classic mixer.", no_ice=True),
     d("Chocolate Milkshake", [("Bottle", 250)], None, "Rich, creamy chocolate milkshake.", [M]),
     d("Strawberry Milkshake", [("Bottle", 250)], None, "Creamy strawberry milkshake.", [M]),

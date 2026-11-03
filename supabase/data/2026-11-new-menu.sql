@@ -245,7 +245,7 @@ begin
   perform pg_temp.size(dr, 'Double 50ml', 560, 20);
   perform pg_temp.offers(dr, 'Add a mixer');
   perform pg_temp.offers(dr, 'How would you like it?');
-  dr := pg_temp.drink(c, 'Haig Club Clubman Bourbon Cask', 'Single grain Scotch from bourbon casks: soft vanilla and caramel.', null, true, false, false, '{}'::text[], 250);
+  dr := pg_temp.drink(c, 'Haig Club Clubman Single Grain Scotch Whisky', 'Light, smooth single grain Scotch matured in American oak: sweet vanilla, toffee and a hint of spice.', null, true, false, false, '{}'::text[], 250);
   perform pg_temp.size(dr, 'Single 25ml', 300, 10);
   perform pg_temp.size(dr, 'Double 50ml', 560, 20);
   perform pg_temp.offers(dr, 'Add a mixer');
@@ -284,7 +284,7 @@ begin
   perform pg_temp.size(dr, 'Single 25ml', 300, 10);
   perform pg_temp.size(dr, 'Double 50ml', 560, 20);
   perform pg_temp.offers(dr, 'Add a mixer');
-  dr := pg_temp.drink(c, 'Gordon''s Berry Gin', 'Gordon''s gin with juicy mixed berries.', null, true, false, false, '{}'::text[], 80);
+  dr := pg_temp.drink(c, 'Gordon''s Shimmer Berry Gin', 'Gordon''s with juicy berry flavours and a shimmering swirl in the glass. Lovely with lemonade.', null, true, false, false, '{}'::text[], 80);
   perform pg_temp.size(dr, 'Single 25ml', 300, 10);
   perform pg_temp.size(dr, 'Double 50ml', 560, 20);
   perform pg_temp.offers(dr, 'Add a mixer');

@@ -1,4 +1,4 @@
-import html, re, sys
+import base64, html, os, re, sys
 from menu_data import MENU, MIXERS
 
 e = html.escape
@@ -57,6 +57,16 @@ for c in MENU:
       {note}
       <div class="drinks">{''.join(cards)}</div>
     </section>""")
+
+# Real screenshots of drinksorder.app running on a test copy with this menu.
+SHOTS = [("1-menu", "The menu"), ("2-whisky", "Whisky"), ("3-vodka-sheet", "A spirit, with mixers"),
+         ("4-house-wine", "House wine"), ("5-wine-sheet", "A specialist wine"), ("6-soft", "Soft drinks")]
+shot_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "shots")
+gallery = "".join(
+    f'<figure class="shot"><img alt="{e(cap)} on drinksorder.app" src="data:image/jpeg;base64,'
+    + base64.b64encode(open(os.path.join(shot_dir, f + ".jpg"), "rb").read()).decode()
+    + f'"><figcaption>{e(cap)}</figcaption></figure>'
+    for f, cap in SHOTS if os.path.exists(os.path.join(shot_dir, f + ".jpg")))
 
 mixer_rows = "".join(
     f'<tr><td>{e(l)}</td><td class="num">{"free" if p == 0 else "+" + money(p)}</td><td>{e(f) if f else "–"}</td></tr>'
@@ -133,6 +143,13 @@ th, td {{ text-align: left; padding: 7px 10px 7px 0; border-bottom: 1px solid va
 th {{ font: 600 0.7rem/1.2 var(--caps); letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold-ink); }}
 td.num {{ font-variant-numeric: tabular-nums; white-space: nowrap; }}
 .steps {{ margin: 0; padding-left: 20px; display: grid; gap: 4px; }}
+.real {{ display: grid; gap: 8px; margin-bottom: 16px; }}
+.real h2 {{ font: 600 1.6rem/1.2 var(--display); margin: 0; color: var(--forest); }}
+.real p {{ margin: 0; color: var(--muted); }}
+.gallery {{ display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; scroll-snap-type: x mandatory; }}
+.shot {{ flex: none; width: 210px; margin: 0; display: grid; gap: 6px; scroll-snap-align: start; }}
+.shot img {{ width: 100%; max-width: 100%; border-radius: 14px; border: 1px solid var(--line); display: block; }}
+.shot figcaption {{ font-size: 0.85rem; color: var(--muted); text-align: center; }}
 @media (max-width: 520px) {{ h1 {{ font-size: 2.1rem; }} }}
 </style>
 
@@ -140,12 +157,17 @@ td.num {{ font-variant-numeric: tabular-nums; white-space: nowrap; }}
   <header class="banner">
     <span class="eyebrow">The Rising Sun Inn · Abersychan</span>
     <h1>New drinks menu: preview</h1>
-    <p class="lede">This is what goes on drinksorder.app when you say go. Nothing has changed on the live menu yet.
-      Drinks with a gold edge have something for you to check.</p>
+    <p class="lede">This is what goes on drinksorder.app when you say go. Nothing has changed on the live menu yet.</p>
     <ul class="facts">
-      <li>{len(MENU)} categories</li><li>{drinks_total} drinks</li><li class="miss">{flags_total} things to check</li>
+      <li>{len(MENU)} categories</li><li>{drinks_total} drinks</li>{f'<li class="miss">{flags_total} things to check</li>' if flags_total else '<li>All checked</li>'}
     </ul>
   </header>
+
+  <section aria-labelledby="real-h" class="real">
+    <h2 id="real-h">How it looks on drinksorder.app</h2>
+    <p>Screenshots of the real customer app on a phone, running on a test copy with this menu. Same layout as now; only the drinks change.</p>
+    <div class="gallery">{gallery}</div>
+  </section>
 
   <section class="notice" aria-labelledby="mixers-h">
     <h2 id="mixers-h">Mixers for spirits</h2>

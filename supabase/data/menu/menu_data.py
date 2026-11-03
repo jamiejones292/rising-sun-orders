@@ -64,8 +64,7 @@ cat("Bottled Cider", [
 ], no_ice=False)
 
 cat("Alcohol-Free", [
-    d("Old Mout Alcohol Free", BOTTLE(450), 0.0, "All the fruity flavour of Old Mout, without the alcohol.", [S],
-      ["Flavour: Old Mout makes several alcohol-free ciders. Which one do you stock?"]),
+    d("Old Mout Alcohol Free", BOTTLE(450), 0.0, "All the fruity flavour of Old Mout, without the alcohol.", [S]),
     d("Heineken 0.0", [("330ml bottle", 300)], 0.0, "Refreshing alcohol-free lager with a light malty body and fruity notes.", [G]),
     d("Thatchers Blood Orange Alcohol Free", BOTTLE(450), 0.0, "Crisp apple cider and zesty blood orange, alcohol-free.", [S]),
 ], alcohol=False)
@@ -75,8 +74,6 @@ cat("Whisky", [
     d("Jack Daniel's Old No. 7", SPIRIT, 40.0, "The classic Tennessee whiskey: smooth, with caramel, vanilla and toasted oak."),
     d("Jack Daniel's Tennessee Fire", SPIRIT, 35.0, "Jack Daniel's blended with a warming red-hot cinnamon liqueur."),
     d("Jack Daniel's Bonded", SPIRIT, 50.0, "Bottled-in-bond Tennessee whiskey: bold and rich, with deep oak, caramel and spice."),
-    d("Jack Daniel's Winter Jack", SPIRIT, 15.0, "A seasonal blend of Jack Daniel's, apple cider liqueur and winter spices. Lovely warm.",
-      flags=["Winter Jack is a 15% liqueur. Should it go under Liqueurs instead?"]),
     d("Jack Daniel's Tennessee Apple", SPIRIT, 35.0, "Jack Daniel's with crisp green apple liqueur. Great with lemonade or ginger."),
     d("Jack Daniel's Tennessee Blackberry", SPIRIT, 35.0, "Jack Daniel's blended with a juicy blackberry liqueur."),
     d("Jack Daniel's McLaren Edition", SPIRIT, None, "Limited-edition Jack Daniel's released with the McLaren Formula 1 team.",
@@ -147,6 +144,7 @@ cat("Liqueurs", [
     d("Jägermeister Orange", SPIRIT, 33.0, "Jägermeister's herbal recipe with a twist of bitter orange."),
     d("Drambuie", SPIRIT, 40.0, "Scotch whisky liqueur with heather honey, herbs and spice."),
     d("Grand Marnier Cordon Rouge", SPIRIT, 40.0, "Cognac and bitter orange liqueur: rich, smooth and warming."),
+    d("Jack Daniel's Winter Jack", SPIRIT, 15.0, "A seasonal blend of Jack Daniel's, apple cider liqueur and winter spices. Lovely warm."),
     d("Fireball Cinnamon Whisky Liqueur", SPIRIT, 33.0, "Whisky liqueur with a fiery red-hot cinnamon kick."),
     d("Southern Comfort Original", SPIRIT, 35.0, "Fruity, spiced whiskey liqueur from New Orleans. Great with lemonade or cola."),
     d("Sourz Apple", SPIRIT, 15.0, "Sweet and sour green apple liqueur."),
@@ -173,10 +171,12 @@ cat("House Wine", [
     d("Malbec", HOUSE_WINE, None, "House red. Full and juicy, with blackberry and a hint of spice.", [S]),
 ], note="175ml £5.20 · 250ml £6.80 · Bottle £19.75")
 
+# Dietary labels from the owner's wine list: the 12 vegan wines are vegan and
+# vegetarian; the other 3 are vegetarian only (not vegan without confirmation).
 def wine(name, pence, origin, diet, desc, flags=()):
-    full = f"{origin} · {diet}. {desc}"
-    return d(name, [("Bottle", pence)], None, full, [S], list(flags) + (
-        [] if diet == "Vegan" else ["Vegetarian wines can be fined with egg or milk. Add those allergens if the supplier says so."]))
+    label = "Vegan · Vegetarian" if diet == "Vegan" else "Vegetarian"
+    full = f"{label}. {origin}. {desc}"
+    return d(name, [("Bottle", pence)], None, full, [S], list(flags))
 
 cat("White Wine", [
     wine("Frunza Pinot Grigio Feteasca Alba", 2025, "Banat, Romania", "Vegetarian",
@@ -241,8 +241,7 @@ cat("Cans, Juices & Mixers", [
     d("Fever-Tree Low Calorie Tonic", [("200ml bottle", 280)], None, "Fever-Tree's refreshingly light Indian tonic, with fewer calories.",
       no_ice=True, flags=["Name: your list says 'Low Calorie Fever-Tree'. I've called it 'Fever-Tree Low Calorie Tonic'."]),
     d("Britvic Orange", [("200ml bottle", 240)], None, "Orange juice drink. A classic mixer.", no_ice=True),
-    d("Chocolate Milkshake", [("Bottle", 250)], None, "Rich, creamy chocolate milkshake.", [M],
-      flags=["Size: bottle, carton or made at the bar? I've put 'Bottle'."]),
+    d("Chocolate Milkshake", [("Bottle", 250)], None, "Rich, creamy chocolate milkshake.", [M]),
     d("Strawberry Milkshake", [("Bottle", 250)], None, "Creamy strawberry milkshake.", [M]),
     d("Vanilla Milkshake", [("Bottle", 250)], None, "Smooth, creamy vanilla milkshake.", [M]),
     d("Fruit Shoot Orange & Blackcurrant", [("Bottle", 120)], None, "Kids' fruit drink, no added sugar."),

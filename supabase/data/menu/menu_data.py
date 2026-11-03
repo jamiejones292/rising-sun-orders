@@ -100,7 +100,6 @@ cat("Whisky", [
     d("Penderyn Celt", SPIRIT, 41.0, "Lightly peated Welsh single malt with a fresh, gently smoky character.", welsh=True),
     d("Dalwhinnie Winter's Gold", SPIRIT, 43.0, "Highland single malt with honey, vanilla and a gentle spiced sweetness. Lovely chilled."),
     d("Ardbeg Ten", SPIRIT, 46.0, "Bold, smoky Islay single malt: peaty, with sweet citrus and chocolate notes."),
-    d("Haig Club Clubman", SPIRIT, 40.0, "Light, smooth single grain Scotch with sweet vanilla and toffee. Great with a mixer."),
     d("Haig Club Clubman Single Grain Scotch Whisky", SPIRIT, 40.0, "Light, smooth single grain Scotch matured in American oak: sweet vanilla, toffee and a hint of spice."),
     d("Laphroaig Oak Select", SPIRIT, 40.0, "Islay single malt with Laphroaig's peaty smoke softened by sweet oak and vanilla."),
 ], groups=["Add a mixer"] + WHISKY_GROUP, note="Single £3.00 · Double £5.60")

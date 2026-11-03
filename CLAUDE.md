@@ -158,6 +158,11 @@ architecture changes, and never ask for secrets in chat.
 - `CustomerRoot` shows the "being set up" page unless `venue_settings.customer_menu_live`
   (migration 004, switch in Venue settings) or this phone has `/?preview` (localStorage
   `rs-preview`; `/?preview=off` clears it). `CustomerApp` is lazy-loaded.
+- Menu screen: the sticky page header holds `MenuToolbar` (search box + category buttons), so
+  both stay visible while scrolling. Search filters as you type across all categories,
+  ignoring case and accents; each word must match the start of a word; name/category matches
+  win, descriptions are searched only when nothing matches by name; a few aliases (`ALSO`:
+  coke→Coca-Cola, whisky/whiskey, af, bubbly, kids…). Tapping a category clears the search.
 - Menu from `useCustomerMenu` (public reads, Realtime on drinks/variants/options/settings,
   60-second poll). Basket in localStorage holds ids only; prices always come from
   `src/lib/pricing.ts` `priceLine`, which the payment server code must reuse.

@@ -239,8 +239,13 @@ cat("Cans, Juices & Mixers", [
     d("Chocolate Milkshake", [("Bottle", 250)], None, "Rich, creamy chocolate milkshake.", [M]),
     d("Strawberry Milkshake", [("Bottle", 250)], None, "Creamy strawberry milkshake.", [M]),
     d("Vanilla Milkshake", [("Bottle", 250)], None, "Smooth, creamy vanilla milkshake.", [M]),
-    d("Fruit Shoot Orange & Blackcurrant", [("Bottle", 120)], None, "Kids' fruit drink, no added sugar."),
+    d("Fruit Shoot", [("Bottle", 120)], None, "Kids' fruit drink, no added sugar. Orange or blackcurrant.", groups=["Flavour"]),
 ], alcohol=False)
+
+# Extra choice lists the menu needs: (name, customers must choose one, [(choice, extra pence)]).
+GROUPS = [
+    ("Flavour", True, [("Orange", 0), ("Blackcurrant", 0)]),
+]
 
 # Spirits' "Add a mixer" list: (label, extra pence, drink it follows). PROPOSED prices.
 MIXERS = [

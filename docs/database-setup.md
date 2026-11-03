@@ -86,6 +86,7 @@ Whole-menu changes are data files in `supabase/data/`, run once in the SQL Edito
 | File | What it does | Run? |
 |---|---|---|
 | `2026-11-new-menu.sql` | November 2026 menu: archives the old drinks and adds 122 new ones in 19 categories, with the spirits' mixer list | Not yet |
+| `2026-11-fruit-shoot.sql` | Fruit Shoot as one drink with a choice of Orange or Blackcurrant. Only needed if the menu above was run before 3 November; safe to run anyway | Not yet |
 
 ## Trying the bar screen with a test order
 Real orders arrive once payments are set up. To see how the bar screen behaves before then,

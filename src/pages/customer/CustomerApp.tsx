@@ -9,7 +9,7 @@ import { paidOnly, readHistory, saveToHistory, verifyHistory, type PastOrder } f
 import RecentOrders from "./RecentOrders";
 import { useBasket } from "./basket";
 import { useCustomerMenu, type MenuDrink } from "./useCustomerMenu";
-import MenuScreen from "./MenuScreen";
+import MenuScreen, { MenuToolbar } from "./MenuScreen";
 import ProductSheet from "./ProductSheet";
 import BasketScreen from "./BasketScreen";
 import TableScreen, { type CheckoutDetails } from "./TableScreen";
@@ -24,6 +24,7 @@ export default function CustomerApp({ preview, previewPhone }: { preview: boolea
   const basket = useBasket();
   const [screen, setScreen] = useState<Screen>("welcome");
   const [category, setCategory] = useState("all");
+  const [query, setQuery] = useState("");
   const [sheet, setSheet] = useState<{ drink: MenuDrink; index: number | null } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [history, setHistory] = useState<PastOrder[]>(() => paidOnly(readHistory()));
@@ -207,6 +208,9 @@ export default function CustomerApp({ preview, previewPhone }: { preview: boolea
               {basket.table && menu.tables.some((t) => t.label === basket.table) ? `Table ${basket.table}` : "Table chosen at checkout"}
             </span>
           </div>
+          {screen === "menu" && (
+            <MenuToolbar menu={menu} category={category} onCategory={setCategory} query={query} onQuery={setQuery} />
+          )}
         </header>
       )}
 
@@ -214,7 +218,8 @@ export default function CustomerApp({ preview, previewPhone }: { preview: boolea
         <MenuScreen
           menu={menu}
           category={category}
-          onCategory={setCategory}
+          query={query}
+          onClearQuery={() => setQuery("")}
           notice={
             (notice || (history.length > 0 && count === 0)) && (
               <div className="gutter flex flex-col gap-4 pt-4">

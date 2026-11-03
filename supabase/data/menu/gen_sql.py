@@ -1,5 +1,5 @@
 import sys
-from menu_data import MENU, MIXERS
+from menu_data import GROUPS, MENU, MIXERS
 
 def q(s):
     return "'" + str(s).replace("'", "''") + "'"
@@ -69,6 +69,17 @@ select 'Add a mixer', false, 10 where not exists (select 1 from public.modifier_
 update public.modifier_options set archived_at = now(), available = false
  where archived_at is null and group_id = (select id from public.modifier_groups where name = 'Add a mixer');
 
+-- 2b. Other choice lists the menu uses (created if missing).
+"""
+)
+for gi, (gname, required, options) in enumerate(GROUPS):
+    w(f"insert into public.modifier_groups (name, required, sort_order)\n"
+      f"select {q(gname)}, {str(required).lower()}, {(gi + 5) * 10} where not exists (select 1 from public.modifier_groups where name = {q(gname)});")
+    for oi, (label, pence) in enumerate(options):
+        w(f"insert into public.modifier_options (group_id, label, price_pence, sort_order)\n"
+          f"select g.id, {q(label)}, {pence}, {oi * 10} from public.modifier_groups g where g.name = {q(gname)}\n"
+          f"   and not exists (select 1 from public.modifier_options o where o.group_id = g.id and o.label = {q(label)} and o.archived_at is null);")
+w("""
 -- 3. The new menu.
 do $$
 declare c uuid; dr uuid;

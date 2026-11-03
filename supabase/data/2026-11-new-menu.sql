@@ -58,6 +58,17 @@ select 'Add a mixer', false, 10 where not exists (select 1 from public.modifier_
 update public.modifier_options set archived_at = now(), available = false
  where archived_at is null and group_id = (select id from public.modifier_groups where name = 'Add a mixer');
 
+-- 2b. Other choice lists the menu uses (created if missing).
+
+insert into public.modifier_groups (name, required, sort_order)
+select 'Flavour', true, 50 where not exists (select 1 from public.modifier_groups where name = 'Flavour');
+insert into public.modifier_options (group_id, label, price_pence, sort_order)
+select g.id, 'Orange', 0, 0 from public.modifier_groups g where g.name = 'Flavour'
+   and not exists (select 1 from public.modifier_options o where o.group_id = g.id and o.label = 'Orange' and o.archived_at is null);
+insert into public.modifier_options (group_id, label, price_pence, sort_order)
+select g.id, 'Blackcurrant', 0, 10 from public.modifier_groups g where g.name = 'Flavour'
+   and not exists (select 1 from public.modifier_options o where o.group_id = g.id and o.label = 'Blackcurrant' and o.archived_at is null);
+
 -- 3. The new menu.
 do $$
 declare c uuid; dr uuid;
@@ -493,8 +504,9 @@ begin
   perform pg_temp.size(dr, 'Bottle', 250, 10);
   dr := pg_temp.drink(c, 'Vanilla Milkshake', 'Smooth, creamy vanilla milkshake.', null, false, false, false, array['Milk']::text[], 140);
   perform pg_temp.size(dr, 'Bottle', 250, 10);
-  dr := pg_temp.drink(c, 'Fruit Shoot Orange & Blackcurrant', 'Kids'' fruit drink, no added sugar.', null, false, false, false, '{}'::text[], 150);
+  dr := pg_temp.drink(c, 'Fruit Shoot', 'Kids'' fruit drink, no added sugar. Orange or blackcurrant.', null, false, false, false, '{}'::text[], 150);
   perform pg_temp.size(dr, 'Bottle', 120, 10);
+  perform pg_temp.offers(dr, 'Flavour');
 end $$;
 
 -- 4. The new mixer choices, each following its drink (out of stock with it).

@@ -548,11 +548,11 @@ select id, 'Pepsi', 60, 20, (select id from public.drinks where name = 'Pepsi' a
 insert into public.modifier_options (group_id, label, price_pence, sort_order, linked_drink_id)
 select id, 'Pepsi Max', 60, 30, (select id from public.drinks where name = 'Pepsi Max' and archived_at is null limit 1) from public.modifier_groups where name = 'Add a mixer';
 insert into public.modifier_options (group_id, label, price_pence, sort_order, linked_drink_id)
-select id, 'Coca-Cola', 180, 40, (select id from public.drinks where name = 'Coca-Cola' and archived_at is null limit 1) from public.modifier_groups where name = 'Add a mixer';
+select id, 'Coca-Cola (can)', 180, 40, (select id from public.drinks where name = 'Coca-Cola' and archived_at is null limit 1) from public.modifier_groups where name = 'Add a mixer';
 insert into public.modifier_options (group_id, label, price_pence, sort_order, linked_drink_id)
-select id, 'Diet Coke', 180, 50, (select id from public.drinks where name = 'Diet Coke' and archived_at is null limit 1) from public.modifier_groups where name = 'Add a mixer';
+select id, 'Diet Coke (can)', 180, 50, (select id from public.drinks where name = 'Diet Coke' and archived_at is null limit 1) from public.modifier_groups where name = 'Add a mixer';
 insert into public.modifier_options (group_id, label, price_pence, sort_order, linked_drink_id)
-select id, 'Coke Zero', 180, 60, (select id from public.drinks where name = 'Coke Zero' and archived_at is null limit 1) from public.modifier_groups where name = 'Add a mixer';
+select id, 'Coke Zero (can)', 180, 60, (select id from public.drinks where name = 'Coke Zero' and archived_at is null limit 1) from public.modifier_groups where name = 'Add a mixer';
 insert into public.modifier_options (group_id, label, price_pence, sort_order, linked_drink_id)
 select id, 'Slimline Britvic Tonic', 200, 70, (select id from public.drinks where name = 'Slimline Britvic Tonic' and archived_at is null limit 1) from public.modifier_groups where name = 'Add a mixer';
 insert into public.modifier_options (group_id, label, price_pence, sort_order, linked_drink_id)

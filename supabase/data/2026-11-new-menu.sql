@@ -120,11 +120,14 @@ begin
   perform pg_temp.size(dr, 'Pint', 550, 20);
   c := pg_temp.cat('Real Ales', 30);
   dr := pg_temp.drink(c, 'Ghost Face – Wye Valley Brewery', 'Pale ale. A hop-forward pale ale with refreshing citrus character, fruity hop notes and a crisp, pleasantly bitter finish.', null, true, false, false, array['Cereals containing gluten']::text[], 10);
-  perform pg_temp.size(dr, 'Pint', 460, 10);
+  perform pg_temp.size(dr, 'Half pint', 280, 10);
+  perform pg_temp.size(dr, 'Pint', 460, 20);
   dr := pg_temp.drink(c, 'Hop Crop – Wye Valley Brewery', 'British session IPA. A refreshing session IPA with bright citrus and floral notes, balanced bitterness and a clean, easy-drinking finish.', null, true, false, false, array['Cereals containing gluten']::text[], 20);
-  perform pg_temp.size(dr, 'Pint', 460, 10);
+  perform pg_temp.size(dr, 'Half pint', 280, 10);
+  perform pg_temp.size(dr, 'Pint', 460, 20);
   dr := pg_temp.drink(c, 'Admiral''s Ale – St Austell Brewery', 'Limited edition strong ale. A full-flavoured strong ale with rich malt character, gentle caramel sweetness and a balanced, warming finish.', null, true, false, false, array['Cereals containing gluten']::text[], 30);
-  perform pg_temp.size(dr, 'Pint', 460, 10);
+  perform pg_temp.size(dr, 'Half pint', 280, 10);
+  perform pg_temp.size(dr, 'Pint', 460, 20);
   c := pg_temp.cat('Draught Cider', 40);
   dr := pg_temp.drink(c, 'Inch''s', 'Crisp, refreshing apple cider from Herefordshire with a clean, dry finish.', null, true, false, false, array['Sulphites']::text[], 10);
   perform pg_temp.size(dr, 'Half pint', 260, 10);

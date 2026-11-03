@@ -1,4 +1,5 @@
--- The Rising Sun Inn: adds the "Real Ales" heading with three ales (November 2026).
+-- The Rising Sun Inn: adds the "Real Ales" heading with three ales (November 2026),
+-- half pint £2.80 and pint £4.60. Also adds the half pint if the ales are already there.
 -- Run in the Supabase SQL Editor (New query, paste, Run). Safe to run more than once:
 -- it only adds what isn't there yet. Not needed if 2026-11-new-menu.sql is run after
 -- 4 November 2026 (that file already includes them), but harmless either way.
@@ -23,7 +24,7 @@ begin
   end if;
 end $$;
 
--- The three ales, pints only, £4.60 each.
+-- The three ales: half pint £2.80, pint £4.60.
 do $$
 declare
   v_cat uuid;
@@ -48,7 +49,15 @@ begin
               array['Cereals containing gluten']::text[], 20, true, r.sort)
       returning id into v_drink;
       insert into public.drink_variants (drink_id, label, price_pence, available, sort_order)
-      values (v_drink, 'Pint', 460, true, 10);
+      values (v_drink, 'Half pint', 280, true, 10), (v_drink, 'Pint', 460, true, 20);
+    else
+      -- Already on the menu (pints only at first): add the half pint, before the pint.
+      select id into v_drink from public.drinks where name = r.name and archived_at is null limit 1;
+      if not exists (select 1 from public.drink_variants where drink_id = v_drink and label = 'Half pint' and archived_at is null) then
+        update public.drink_variants set sort_order = 20 where drink_id = v_drink and label = 'Pint' and archived_at is null;
+        insert into public.drink_variants (drink_id, label, price_pence, available, sort_order)
+        values (v_drink, 'Half pint', 280, true, 10);
+      end if;
     end if;
   end loop;
 end $$;

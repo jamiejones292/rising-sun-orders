@@ -55,8 +55,8 @@ architecture changes, and never ask for secrets in chat.
   the owner's choice; wine dietary labels from the owner's list in the description);
   `gen_sql.py` writes `supabase/data/2026-11-new-menu.sql`, run once by the owner (archives
   the old drinks, 20 categories, 125 drinks, mixer list with draught mixers at 60p). "Real Ales"
-  (3 ales, pints £4.60, after Draught Beer) was added later; `supabase/data/2026-11-real-ales.sql`
-  adds it to a menu that's already live (safe to run twice).
+  (3 ales, half £2.80 / pint £4.60, after Draught Beer) was added later; `supabase/data/2026-11-real-ales.sql`
+  adds it to a menu that's already live, and adds the half pints if the ales are already there (safe to run twice).
 - Mixers follow their drink (migration 009): `modifier_options.linked_drink_id`; a trigger on
   drinks copies `available`/archived to linked options. Linked by exact name when the migration
   ran. Unlinked options have their own switch (`set_option_available`, same rule as drinks),

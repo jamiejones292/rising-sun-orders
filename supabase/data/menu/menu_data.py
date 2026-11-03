@@ -41,11 +41,11 @@ cat("Draught Beer", [
 ])
 
 cat("Real Ales", [
-    d("Ghost Face – Wye Valley Brewery", [("Pint", 460)], None,
+    d("Ghost Face – Wye Valley Brewery", HALF_PINT(280, 460), None,
       "Pale ale. A hop-forward pale ale with refreshing citrus character, fruity hop notes and a crisp, pleasantly bitter finish.", [G]),
-    d("Hop Crop – Wye Valley Brewery", [("Pint", 460)], None,
+    d("Hop Crop – Wye Valley Brewery", HALF_PINT(280, 460), None,
       "British session IPA. A refreshing session IPA with bright citrus and floral notes, balanced bitterness and a clean, easy-drinking finish.", [G]),
-    d("Admiral's Ale – St Austell Brewery", [("Pint", 460)], 5.0,
+    d("Admiral's Ale – St Austell Brewery", HALF_PINT(280, 460), 5.0,
       "Limited edition strong ale. A full-flavoured strong ale with rich malt character, gentle caramel sweetness and a balanced, warming finish.", [G]),
 ])
 

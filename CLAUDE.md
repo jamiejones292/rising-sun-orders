@@ -27,7 +27,9 @@ architecture changes, and never ask for secrets in chat.
 ## Agreed product decisions
 - Tables 1–25, no areas yet; keep an `area` field for later.
 - One universal QR code to `drinksorder.app`.
-- Category chips on the customer menu filter the list (not scroll-to).
+- Category chips on the customer menu scroll the full menu to that heading (owner's change, Nov 2026;
+  was filter). The highlighted chip follows the heading at the top while scrolling (scroll spy in
+  `CustomerApp`, paused 1 s after a tap); tapping a chip clears a search; no "All drinks" chip.
 - "No ice" tick box on soft drinks and mixer drinks (per-drink setting in admin).
 - Express Apple Pay / Google Pay on the confirm-table screen; card as fallback.
 - Optional email receipt with VAT breakdown (before or after paying).

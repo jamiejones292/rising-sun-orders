@@ -1,4 +1,4 @@
-import { useRef, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { formatPence } from "../../lib/money";
 import type { CustomerMenu, MenuDrink } from "./useCustomerMenu";
 
@@ -55,6 +55,12 @@ export function MenuToolbar({
 }) {
   const chips = useRef<HTMLElement>(null);
   const searching = query.trim() !== "";
+  // Keep the highlighted button in view as the menu scrolls through the headings.
+  useEffect(() => {
+    const nav = chips.current;
+    const el = nav?.querySelector<HTMLElement>(`[data-cat="${category}"]`);
+    if (nav && el) nav.scrollTo({ left: el.offsetLeft - (nav.clientWidth - el.offsetWidth) / 2, behavior: "smooth" });
+  }, [category]);
   return (
     <>
       <div className="gutter pb-2">
@@ -96,16 +102,14 @@ export function MenuToolbar({
         aria-label="Drink categories"
         className="gutter flex gap-1.5 overflow-x-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        {[{ id: "all", name: "All drinks" }, ...menu.categories].map((c) => (
+        {menu.categories.map((c) => (
           <button
             key={c.id}
+            data-cat={c.id}
             aria-current={!searching && category === c.id}
-            onClick={(e) => {
+            onClick={() => {
               onQuery("");
               onCategory(c.id);
-              const el = e.currentTarget;
-              chips.current?.scrollTo({ left: el.offsetLeft - (chips.current.clientWidth - el.offsetWidth) / 2, behavior: "smooth" });
-              window.scrollTo({ top: 0 });
             }}
             className="shrink-0 rounded-full border border-gold-soft/35 px-3.5 py-1.5 text-sm font-medium text-ivory aria-[current=true]:border-gold-soft aria-[current=true]:bg-gold-soft aria-[current=true]:text-forest"
           >
@@ -119,14 +123,12 @@ export function MenuToolbar({
 
 export default function MenuScreen({
   menu,
-  category,
   query,
   onClearQuery,
   onPick,
   notice,
 }: {
   menu: CustomerMenu;
-  category: string;
   query: string;
   onClearQuery: () => void;
   onPick: (d: MenuDrink) => void;
@@ -155,7 +157,6 @@ export default function MenuScreen({
     !words.length ||
     (mode === "name" ? all(`${d.name} ${cat}`) : mode === "desc" ? all(`${d.name} ${d.description ?? ""} ${cat}`) : words.length > 1 && some(`${d.name} ${cat}`));
   const sections = menu.categories
-    .filter((c) => words.length > 0 || category === "all" || c.id === category)
     .map((c) => ({ cat: c, drinks: menu.drinks.filter((d) => d.category_id === c.id && d.variants.length > 0 && matches(d, c.name)) }))
     .filter((s) => s.drinks.length);
 
@@ -174,8 +175,14 @@ export default function MenuScreen({
         {words.length > 1 && mode === "any" && sections.length > 0 && (
           <p className="m-0 pt-4 text-sm text-muted">Nothing matches all of “{query.trim()}”, so here are drinks matching some of it.</p>
         )}
-        {sections.map(({ cat, drinks }) => (
-          <section key={cat.id} className="pt-6.5 pb-1">
+        {sections.map(({ cat, drinks }, i) => (
+          <section
+            key={cat.id}
+            id={`cat-${cat.id}`}
+            data-menu-cat={cat.id}
+            // The last heading gets room below it, so tapping it can still bring it to the top.
+            className={`pt-6.5 pb-1 ${i === sections.length - 1 && !words.length ? "min-h-[calc(100dvh-12rem)]" : ""}`}
+          >
             <div className="flex items-baseline justify-between gap-3 border-b border-gold pb-1.5">
               <h2 className="text-[1.7rem]">{cat.name}</h2>
               <span className="text-xs text-muted">

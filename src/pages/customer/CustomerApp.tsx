@@ -84,6 +84,37 @@ export default function CustomerApp({ preview, previewPhone }: { preview: boolea
     else setSheet(null);
   };
 
+  // Category buttons scroll the full menu to that heading, and the highlighted
+  // button follows whichever heading is at the top as the customer scrolls.
+  const spyPausedUntil = useRef(0);
+  const headerBottom = () => document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
+  function jumpTo(id: string) {
+    setQuery("");
+    setCategory(id);
+    spyPausedUntil.current = Date.now() + 1000;
+    // Wait a moment for the full menu to show again if a search was cleared.
+    window.setTimeout(() => {
+      const el = document.getElementById(`cat-${id}`);
+      if (el) window.scrollTo({ top: window.scrollY + el.getBoundingClientRect().top - headerBottom() + 1, behavior: "smooth" });
+    }, 30);
+  }
+  useEffect(() => {
+    if (screen !== "menu" || query.trim()) return;
+    const spy = () => {
+      if (Date.now() < spyPausedUntil.current) return;
+      const line = headerBottom() + 12;
+      let current: string | undefined;
+      for (const el of document.querySelectorAll<HTMLElement>("[data-menu-cat]")) {
+        if (el.getBoundingClientRect().top <= line) current = el.dataset.menuCat;
+        else break;
+      }
+      setCategory(current ?? menu?.categories[0]?.id ?? "all");
+    };
+    spy();
+    window.addEventListener("scroll", spy, { passive: true });
+    return () => window.removeEventListener("scroll", spy);
+  }, [screen, query, menu]);
+
   const priced = useMemo(() => (menu ? basket.lines.map((l) => priceLine({ drinks: menu.drinks }, l)) : []), [menu, basket.lines]);
   const total = priced.reduce((s, p) => s + (p.ok ? p.totalPence : 0), 0);
   const count = basket.lines.reduce((s, l) => s + l.quantity, 0);
@@ -253,7 +284,7 @@ export default function CustomerApp({ preview, previewPhone }: { preview: boolea
             )}
           </div>
           {screen === "menu" && (
-            <MenuToolbar menu={menu} category={category} onCategory={setCategory} query={query} onQuery={setQuery} />
+            <MenuToolbar menu={menu} category={category} onCategory={jumpTo} query={query} onQuery={setQuery} />
           )}
         </header>
       )}
@@ -261,7 +292,6 @@ export default function CustomerApp({ preview, previewPhone }: { preview: boolea
       {screen === "menu" && (
         <MenuScreen
           menu={menu}
-          category={category}
           query={query}
           onClearQuery={() => setQuery("")}
           notice={

@@ -8,6 +8,7 @@ M = "Milk"
 
 HALF_PINT = lambda half, pint: [("Half pint", half), ("Pint", pint)]
 SPIRIT = [("Single 25ml", 300), ("Double 50ml", 560)]
+SMALL_LARGE = [("Small glass", 300), ("Large glass", 560)]
 HOUSE_WINE = [("175ml glass", 520), ("250ml glass", 680), ("Bottle", 1975)]
 SOFT = lambda a, b: [("16oz", a), ("20oz", b)]
 
@@ -55,17 +56,11 @@ BOTTLE = lambda p: [("Bottle", p)]
 cat("Bottled Cider", [
     d("Old Mout Berries & Cherries", BOTTLE(490), 4.0, "Fruity cider bursting with summer berries and cherries. Served over ice.", [S]),
     d("Old Mout Kiwi & Lime", BOTTLE(490), 4.0, "Refreshing cider with zingy kiwi and a squeeze of lime. Served over ice.", [S]),
-    d("Old Mout Mango", BOTTLE(490), 4.0, "Sweet, juicy cider with ripe mango flavour. Served over ice.", [S],
-      ["Name and ABV: Old Mout's mango cider is usually 'Mango & Passion Fruit' at 4%. Check the bottle."]),
-    d("Old Mout Strawberry", BOTTLE(490), 4.0, "Sweet, refreshing cider with ripe strawberry flavour. Served over ice.", [S],
-      ["Name and ABV: Old Mout's is usually 'Strawberry & Apple' at 4%. Check the bottle."]),
     d("Thatchers Blood Orange", BOTTLE(490), 4.0, "Crisp apple cider with a burst of zesty blood orange.", [S]),
     d("Thatchers Blackcurrant", BOTTLE(490), 4.0, "Somerset apple cider blended with sweet, tangy blackcurrant.", [S], ["ABV not certain: check the bottle."]),
     d("Thatchers Rosy", BOTTLE(490), 4.0, "Light, refreshing rosé cider made from Somerset apples.", [S], ["ABV not certain: check the bottle."]),
     d("Thatchers Katy", BOTTLE(550), 7.4, "Sparkling single-variety cider made only from Katy apples: fruity and refreshing.", [S]),
     d("Thatchers Rascal", BOTTLE(530), 4.5, "Medium cider from Somerset with a rich, fruity apple taste.", [S]),
-    d("Thatchers Rattler", BOTTLE(550), 6.0, "Cloudy Cornish cider with a crisp, fruity bite.", [S],
-      ["Brand: Rattler is made by Healeys in Cornwall, not Thatchers. Should the name be 'Rattler Original Cloudy Cider'?"]),
 ], no_ice=False)
 
 cat("Alcohol-Free", [
@@ -160,10 +155,10 @@ cat("Liqueurs", [
 
 cat("Brandy, Port & Sherry", [
     d("Courvoisier VS Cognac", SPIRIT, 40.0, "Smooth cognac with notes of fresh fruit, spring flowers and oak.", groups=["Add a mixer"]),
-    d("Harveys Bristol Cream Sherry", SPIRIT, 17.5, "Rich, smooth cream sherry with dried fruit and nutty notes.", [S],
-      ["Sizes: I've used Single/Double as you said for all spirits. Sherry is often sold in a 50ml or 70ml glass instead."]),
-    d("Taylor's Late Bottled Vintage Port 2018", [("Glass 50ml", 300)], 20.0, "Rich, full-bodied port with blackberry, cherry and chocolate notes.", [S],
-      ["Price: sold by the glass as you said. I've put a 50ml glass at £3.00 (the single price). Tell me the size and price you want."]),
+    d("Harveys Bristol Cream Sherry", SMALL_LARGE, 17.5, "Rich, smooth cream sherry with dried fruit and nutty notes.", [S],
+      ["Price: small and large glasses at the single and double prices (£3.00 / £5.60). Tell me if they should differ."]),
+    d("Taylor's Late Bottled Vintage Port 2018", SMALL_LARGE, 20.0, "Rich, full-bodied port with blackberry, cherry and chocolate notes.", [S],
+      ["Price: small and large glasses at the single and double prices (£3.00 / £5.60). Tell me if they should differ."]),
 ])
 
 cat("House Wine", [
@@ -241,8 +236,7 @@ cat("Cans, Juices & Mixers", [
     d("J2O Mango & Apple", [("275ml bottle", 240)], None, "Mango and apple juice drink, lightly sparkling.", no_ice=True),
     d("J2O Apple & Blackcurrant", [("275ml bottle", 240)], None, "Apple and blackcurrant juice drink, lightly sparkling.", no_ice=True),
     d("Appletiser", [("275ml bottle", 220)], None, "Sparkling 100% apple juice.", no_ice=True),
-    d("Water", [("500ml bottle", 120)], None, "Still bottled water.", no_ice=True,
-      flags=["Still or sparkling? I've put still."]),
+    d("Water", [("500ml bottle", 120)], None, "Still bottled water.", no_ice=True),
     d("Slimline Britvic Tonic", [("200ml bottle", 240)], None, "Low-calorie Indian tonic water.", no_ice=True),
     d("Fever-Tree Low Calorie Tonic", [("200ml bottle", 280)], None, "Fever-Tree's refreshingly light Indian tonic, with fewer calories.",
       no_ice=True, flags=["Name: your list says 'Low Calorie Fever-Tree'. I've called it 'Fever-Tree Low Calorie Tonic'."]),

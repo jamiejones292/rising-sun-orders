@@ -109,6 +109,14 @@ architecture changes, and never ask for secrets in chat.
   time (so takings − refunds is net); drinks/top drinks/extras leave out refunded-in-full
   orders and out-of-stock lines. "Include test orders" defaults on until
   card payments go live; switch the default off then.
+- End of night (`EndOfNight.tsx`, `/admin/end-of-night`, managers): printable summary of one trading
+  day (6am–6am UK, like the bar's "Fulfilled today"), read directly from orders/refunds under the
+  manager RLS rules (no migration): money in = orders paid in the window by payment method (test
+  orders their own line) with VAT per rate (`vatIncludedPence` per line); money out = refunds made in
+  the window (not failed), listed; net; drinks that went out (delivered orders, minus out-of-stock
+  lines) with mixers/extras; not served (out of stock, closed without serving, still waiting).
+  "Include test orders" defaults on until card payments go live. Print uses `print:` variants (the
+  admin nav is `print:hidden`). Table orders only, not the bar till.
 - Drinks page: pinned search/filter bar (accent-insensitive, word-start, also matches the category);
   per category "All off / All on" (`admin_set_category_available`) and "Change a price" for one size
   across the category (`admin_set_category_size_price`), both migration 015; Delete only in Archived;

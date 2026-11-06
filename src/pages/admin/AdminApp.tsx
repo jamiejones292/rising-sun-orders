@@ -8,6 +8,7 @@ import Drinks from "./Drinks";
 import Categories from "./Categories";
 import Extras from "./Extras";
 import Sales from "./Sales";
+import EndOfNight from "./EndOfNight";
 import Tables from "./Tables";
 import Settings from "./Settings";
 
@@ -17,6 +18,7 @@ const ICONS: Record<string, string> = {
   categories: '<path d="M4 6h16M4 12h16M4 18h10"/>',
   sales: '<path d="M4 20h16"/><path d="M7 16v-5M12 16V6M17 16v-8"/>',
   extras: '<path d="M7 3h10l-1 6H8z"/><path d="M12 9v9"/><path d="M8 21h8"/><circle cx="17.5" cy="5.5" r="1.5"/>',
+  night: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/>',
   tables: '<rect x="4" y="4" width="16" height="16" rx="1"/><path d="M9 9h2v2H9zM13 13h2v2h-2z"/>',
   settings:
     '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>',
@@ -26,6 +28,7 @@ const NAV = [
   { to: "/admin", key: "overview", label: "Overview", owner: false, end: true },
   { to: "/admin/drinks", key: "drinks", label: "Drinks & stock", owner: false },
   { to: "/admin/sales", key: "sales", label: "Sales", owner: false },
+  { to: "/admin/end-of-night", key: "night", label: "End of night", owner: false },
   { to: "/admin/extras", key: "extras", label: "Mixers & extras", owner: false },
   { to: "/admin/categories", key: "categories", label: "Categories", owner: false },
   { to: "/admin/tables", key: "tables", label: "Tables & QR code", owner: true },
@@ -78,8 +81,8 @@ function AdminShell() {
   const { profile, signOut } = useAuth();
   const owner = isOwnerRole(profile);
   return (
-    <div className="grid min-h-dvh grid-cols-1 lg:grid-cols-[236px_1fr]">
-      <aside className="flex flex-col bg-forest text-ivory lg:sticky lg:top-0 lg:h-dvh lg:py-5">
+    <div className="grid min-h-dvh grid-cols-1 lg:grid-cols-[236px_1fr] print:block">
+      <aside className="flex flex-col print:hidden bg-forest text-ivory lg:sticky lg:top-0 lg:h-dvh lg:py-5">
         <div className="pt-4 pb-2.5 pl-[max(1.1rem,env(safe-area-inset-left,0px))] pr-4">
           <span className="block font-display text-2xl leading-none font-semibold">The Rising Sun Inn</span>
           <span className="font-caps text-[0.6rem] tracking-[0.3em] text-gold-soft uppercase">Admin · Abersychan</span>
@@ -123,7 +126,7 @@ function AdminShell() {
         </div>
       </aside>
       <div className="flex min-w-0 flex-col">
-        <div className="gutter flex items-center justify-end gap-3 border-b border-line bg-paper py-2.5 lg:hidden">
+        <div className="gutter flex items-center justify-end gap-3 border-b border-line bg-paper py-2.5 lg:hidden print:hidden">
           <span className="text-sm text-muted">{profile?.display_name}</span>
           <button onClick={() => void signOut()} className="text-sm font-bold text-forest underline">
             Sign out
@@ -135,6 +138,7 @@ function AdminShell() {
             <Route path="drinks" element={<Drinks />} />
             <Route path="extras" element={<Extras />} />
             <Route path="sales" element={<Sales />} />
+            <Route path="end-of-night" element={<EndOfNight />} />
             <Route path="categories" element={<Categories />} />
             <Route path="tables" element={owner ? <Tables /> : <Navigate to="/admin" replace />} />
             <Route path="settings" element={owner ? <Settings /> : <Navigate to="/admin" replace />} />
